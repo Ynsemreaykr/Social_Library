@@ -1,6 +1,5 @@
 ﻿using SocialLibrary.Domain.Common;
 using SocialLibrary.Domain.Enums;
-using System.Diagnostics;
 
 namespace SocialLibrary.Domain.Entities;
 

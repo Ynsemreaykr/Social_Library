@@ -14,13 +14,24 @@
     <PackageReference Include="Microsoft.AspNetCore.SpaProxy">
       <Version>8.*-*</Version>
     </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\SocialLibrary.Application\SocialLibrary.Application.csproj" />
     <ProjectReference Include="..\sociallibrary.client\sociallibrary.client.esproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
+    <ProjectReference Include="..\SocialLibrary.Domain\SocialLibrary.Domain.csproj" />
+    <ProjectReference Include="..\SocialLibrary.Infrastructure\SocialLibrary.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
