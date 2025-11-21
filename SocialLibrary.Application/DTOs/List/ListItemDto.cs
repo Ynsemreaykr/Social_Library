@@ -1,6 +1,5 @@
 ﻿namespace SocialLibrary.Application.DTOs.List;
 
-public class ListItemDto
-{
-    public int ContentId { get; set; }
-}
+public record ListItemDto(
+    int ContentId
+);

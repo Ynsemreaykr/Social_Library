@@ -10,7 +10,7 @@ public class UserRepository : GenericRepository<User>, IUserRepository
 {
     public UserRepository(SocialLibraryDbContext context) : base(context) { }
 
-    public async Task<User?> GetByIdAsync(int id)
+    public new async Task<User?> GetByIdAsync(int id)
         => await _dbSet.FirstOrDefaultAsync(x => x.Id == id);
 
     public async Task<User?> GetByEmailAsync(string email)
@@ -19,7 +19,7 @@ public class UserRepository : GenericRepository<User>, IUserRepository
     public async Task<User?> GetByUsernameAsync(string username)
         => await _dbSet.FirstOrDefaultAsync(x => x.Username == username);
 
-    public async Task AddAsync(User user)
+    public new async Task AddAsync(User user)
         => await base.AddAsync(user);
 
     public async Task<bool> AnyAsync(string email, string username)

@@ -1,8 +1,7 @@
 ﻿namespace SocialLibrary.Application.DTOs.Rating;
 
-public class RatingDto
-{
-    public int UserId { get; set; }
-    public int ContentId { get; set; }
-    public int Score { get; set; }
-}
+public record RatingDto(
+    int UserId,
+    int ContentId,
+    int Score
+);

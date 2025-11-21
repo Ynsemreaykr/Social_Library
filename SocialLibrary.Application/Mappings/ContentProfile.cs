@@ -1,17 +1,20 @@
 ﻿using AutoMapper;
 using SocialLibrary.Application.DTOs.Content;
 using SocialLibrary.Domain.Entities;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace SocialLibrary.Application.Mappings;
+namespace SocialLibrary.Application.Mapping;
 
 public class ContentProfile : Profile
 {
     public ContentProfile()
     {
         CreateMap<Content, ContentDto>();
-        CreateMap<Content, ContentDetailDto>()
-            .ForMember(dest => dest.AverageRating, opt => opt.Ignore())
-            .ForMember(dest => dest.RatingCount, opt => opt.Ignore());
+
+        CreateMap<CreateContentRequestDto, Content>();
+
+        CreateMap<UpdateContentRequestDto, Content>()
+            .ForAllMembers(opts => opts.Condition(
+                (src, dest, srcMember) => srcMember != null));
+        // (null gelen alanları overwrite etme)
     }
 }
