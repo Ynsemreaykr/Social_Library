@@ -1,0 +1,10 @@
+<Solution>
+  <Project Path="SocialLibrary.Application/SocialLibrary.Application.csproj" Id="b1e5f209-6922-4375-930f-8c922c49e748" />
+  <Project Path="sociallibrary.client/sociallibrary.client.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="SocialLibrary.Domain/SocialLibrary.Domain.csproj" Id="db89a9ed-608e-4b3f-ba7a-13354f4fb33d" />
+  <Project Path="SocialLibrary.Infrastructure/SocialLibrary.Infrastructure.csproj" Id="3f3ceb66-1863-42af-8bc9-d15570708cf8" />
+  <Project Path="SocialLibrary.Server/SocialLibrary.Server.csproj" />
+</Solution>
