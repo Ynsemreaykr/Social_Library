@@ -1,6 +1,7 @@
 import { Navbar, Nav, Container, Button, NavDropdown } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { authStore } from '../../features/auth/store/authStore';
 
 /**
  * Main Layout Component
@@ -8,26 +9,12 @@ import { useAuth } from '../../hooks/useAuth';
  * Shows "Login / Register" when logged out, user menu when logged in
  */
 const MainLayout = ({ children }) => {
-  // GEÇİCİ: Auth kontrolü devre dışı - arayüz testi için
-  // const { isAuthenticated, user, logout } = useAuth();
-  
-  // Mock kullanıcı bilgileri - arayüz testi için
-  const isAuthenticated = true; // Geçici olarak her zaman authenticated
-  const user = { 
-    userId: 1, 
-    username: 'Test Kullanıcı', 
-    email: 'test@example.com' 
-  };
-  const logout = () => {
-    // Geçici olarak boş
-  };
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    // GEÇİCİ: Logout devre dışı
-    // logout();
-    // navigate('/login');
-    console.log('Logout (geçici olarak devre dışı)');
+    authStore.getState().logout();
+    navigate('/login');
   };
 
   return (
@@ -51,7 +38,7 @@ const MainLayout = ({ children }) => {
                   <Nav.Link as={Link} to="/me/library">
                     Kütüphanem
                   </Nav.Link>
-                  <Nav.Link as={Link} to={`/users/1`}>
+                  <Nav.Link as={Link} to={`/users/${user?.userId}`}>
                     Profilim
                   </Nav.Link>
                 </>
