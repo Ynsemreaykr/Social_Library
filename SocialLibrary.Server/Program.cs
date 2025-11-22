@@ -29,6 +29,7 @@ builder.Services.AddSingleton<JwtTokenGenerator>();
 
 // Content Service
 builder.Services.AddScoped<IContentService, ContentService>();
+builder.Services.AddScoped<ILibraryService, LibraryService>();
 
 // Feed Service
 builder.Services.AddScoped<IFeedService, FeedService>();
