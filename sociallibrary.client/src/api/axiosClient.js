@@ -5,6 +5,8 @@ import { authStore } from '../features/auth/store/authStore';
 const BASE_URL = 'https://localhost:7105/api';
 
 // Create axios instance with base configuration
+// Note: Browser'da https agent kullanılamaz, bu yüzden kaldırıldı
+// SSL sertifika hatası için browser'da "Proceed to localhost" ile devam edilebilir
 const axiosClient = axios.create({
   baseURL: BASE_URL,
   headers: {
@@ -26,15 +28,24 @@ axiosClient.interceptors.request.use(
   }
 );
 
-// Response interceptor: Handle 401 unauthorized (token expired or invalid)
+// Response interceptor: Handle errors
 axiosClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Network error - backend'e ulaşılamıyor
+    if (!error.response) {
+      console.error('Network Error:', error.message);
+      console.error('Backend URL:', BASE_URL);
+      // Daha anlaşılır hata mesajı
+      error.message = `Backend'e bağlanılamıyor. Lütfen backend'in çalıştığından emin olun. (${BASE_URL})`;
+    }
+    
     if (error.response?.status === 401) {
       // Token expired or invalid - clear auth and redirect to login
       authStore.getState().logout();
       // Note: We'll handle navigation in the component level
     }
+    
     return Promise.reject(error);
   }
 );
