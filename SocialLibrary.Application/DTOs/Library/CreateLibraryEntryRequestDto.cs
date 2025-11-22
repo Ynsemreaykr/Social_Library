@@ -2,10 +2,8 @@
 
 namespace SocialLibrary.Application.DTOs.Library;
 
-public record LibraryEntryDto(
-    int Id,
+public record CreateLibraryEntryRequestDto(
     int UserId,
     int ContentId,
-    LibraryStatus Status,
-    DateTime CreatedAt
+    LibraryStatus Status
 );

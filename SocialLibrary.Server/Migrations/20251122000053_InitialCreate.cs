@@ -17,9 +17,9 @@ namespace SocialLibrary.Server.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ExternalId = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    ContentType = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
+                    ExternalId = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ContentType = table.Column<int>(type: "int", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Year = table.Column<int>(type: "int", nullable: true),
                     PosterUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ExtraJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -36,8 +36,8 @@ namespace SocialLibrary.Server.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Username = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(120)", maxLength: 120, nullable: false),
+                    Username = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     AvatarUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Bio = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -55,7 +55,7 @@ namespace SocialLibrary.Server.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<int>(type: "int", nullable: false),
-                    ActivityType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ActivityType = table.Column<int>(type: "int", nullable: false),
                     ContentId = table.Column<int>(type: "int", nullable: true),
                     RelatedId = table.Column<int>(type: "int", nullable: true),
                     ContentId1 = table.Column<int>(type: "int", nullable: true),
@@ -68,8 +68,7 @@ namespace SocialLibrary.Server.Migrations
                         name: "FK_Activities_Contents_ContentId",
                         column: x => x.ContentId,
                         principalTable: "Contents",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Activities_Contents_ContentId1",
                         column: x => x.ContentId1,
@@ -91,6 +90,8 @@ namespace SocialLibrary.Server.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     FollowerId = table.Column<int>(type: "int", nullable: false),
                     FollowingId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<int>(type: "int", nullable: true),
+                    UserId1 = table.Column<int>(type: "int", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
@@ -100,14 +101,22 @@ namespace SocialLibrary.Server.Migrations
                         name: "FK_Follows_Users_FollowerId",
                         column: x => x.FollowerId,
                         principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Follows_Users_FollowingId",
                         column: x => x.FollowingId,
                         principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Follows_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Follows_Users_UserId1",
+                        column: x => x.UserId1,
+                        principalTable: "Users",
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -118,7 +127,8 @@ namespace SocialLibrary.Server.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     ContentId = table.Column<int>(type: "int", nullable: false),
-                    EntryType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    EntryType = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
@@ -145,7 +155,7 @@ namespace SocialLibrary.Server.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
@@ -167,7 +177,7 @@ namespace SocialLibrary.Server.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<int>(type: "int", nullable: false),
-                    Token = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    Token = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Used = table.Column<bool>(type: "bit", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
@@ -250,6 +260,7 @@ namespace SocialLibrary.Server.Migrations
                     UserId = table.Column<int>(type: "int", nullable: false),
                     ActivityId = table.Column<int>(type: "int", nullable: false),
                     Text = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UserId1 = table.Column<int>(type: "int", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
@@ -265,8 +276,12 @@ namespace SocialLibrary.Server.Migrations
                         name: "FK_ActivityComments_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_ActivityComments_Users_UserId1",
+                        column: x => x.UserId1,
+                        principalTable: "Users",
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -277,6 +292,7 @@ namespace SocialLibrary.Server.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     ActivityId = table.Column<int>(type: "int", nullable: false),
+                    UserId1 = table.Column<int>(type: "int", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
@@ -292,8 +308,12 @@ namespace SocialLibrary.Server.Migrations
                         name: "FK_ActivityLikes_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_ActivityLikes_Users_UserId1",
+                        column: x => x.UserId1,
+                        principalTable: "Users",
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -349,27 +369,29 @@ namespace SocialLibrary.Server.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ActivityComments_UserId1",
+                table: "ActivityComments",
+                column: "UserId1");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ActivityLikes_ActivityId",
                 table: "ActivityLikes",
                 column: "ActivityId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ActivityLikes_UserId_ActivityId",
+                name: "IX_ActivityLikes_UserId",
                 table: "ActivityLikes",
-                columns: new[] { "UserId", "ActivityId" },
-                unique: true);
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Contents_ExternalId_ContentType",
-                table: "Contents",
-                columns: new[] { "ExternalId", "ContentType" },
-                unique: true);
+                name: "IX_ActivityLikes_UserId1",
+                table: "ActivityLikes",
+                column: "UserId1");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Follows_FollowerId_FollowingId",
+                name: "IX_Follows_FollowerId",
                 table: "Follows",
-                columns: new[] { "FollowerId", "FollowingId" },
-                unique: true);
+                column: "FollowerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Follows_FollowingId",
@@ -377,15 +399,24 @@ namespace SocialLibrary.Server.Migrations
                 column: "FollowingId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Follows_UserId",
+                table: "Follows",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Follows_UserId1",
+                table: "Follows",
+                column: "UserId1");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_LibraryEntries_ContentId",
                 table: "LibraryEntries",
                 column: "ContentId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_LibraryEntries_UserId_ContentId",
+                name: "IX_LibraryEntries_UserId",
                 table: "LibraryEntries",
-                columns: new[] { "UserId", "ContentId" },
-                unique: true);
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ListItems_ContentId",
@@ -393,22 +424,14 @@ namespace SocialLibrary.Server.Migrations
                 column: "ContentId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ListItems_ListId_ContentId",
+                name: "IX_ListItems_ListId",
                 table: "ListItems",
-                columns: new[] { "ListId", "ContentId" },
-                unique: true);
+                column: "ListId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Lists_UserId_Name",
+                name: "IX_Lists_UserId",
                 table: "Lists",
-                columns: new[] { "UserId", "Name" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_PasswordResetTokens_Token",
-                table: "PasswordResetTokens",
-                column: "Token",
-                unique: true);
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PasswordResetTokens_UserId",
@@ -421,10 +444,9 @@ namespace SocialLibrary.Server.Migrations
                 column: "ContentId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Ratings_UserId_ContentId",
+                name: "IX_Ratings_UserId",
                 table: "Ratings",
-                columns: new[] { "UserId", "ContentId" },
-                unique: true);
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Reviews_ContentId",
@@ -435,18 +457,6 @@ namespace SocialLibrary.Server.Migrations
                 name: "IX_Reviews_UserId",
                 table: "Reviews",
                 column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Users_Email",
-                table: "Users",
-                column: "Email",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Users_Username",
-                table: "Users",
-                column: "Username",
-                unique: true);
         }
 
         /// <inheritdoc />

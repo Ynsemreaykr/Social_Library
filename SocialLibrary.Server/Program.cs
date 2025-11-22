@@ -28,6 +28,7 @@ builder.Services.AddSingleton<JwtTokenGenerator>();
 
 // Content Service
 builder.Services.AddScoped<IContentService, ContentService>();
+builder.Services.AddScoped<ILibraryService, LibraryService>();
 
 // JWT
 var jwtSection = builder.Configuration.GetSection("Jwt");

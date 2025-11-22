@@ -8,8 +8,14 @@ namespace SocialLibrary.Infrastructure.Repositories;
 
 public class LibraryRepository : GenericRepository<LibraryEntry>, ILibraryRepository
 {
-    public LibraryRepository(SocialLibraryDbContext context) : base(context) { }
+    public LibraryRepository(SocialLibraryDbContext context)
+        : base(context)
+    {
+    }
 
-    public async Task<LibraryEntry?> GetEntryAsync(int userId, int contentId)
+    public async Task<LibraryEntry?> GetByUserAndContentAsync(int userId, int contentId)
         => await _dbSet.FirstOrDefaultAsync(x => x.UserId == userId && x.ContentId == contentId);
+
+    public async Task<IEnumerable<LibraryEntry>> GetByUserAsync(int userId)
+        => await _dbSet.Where(x => x.UserId == userId).ToListAsync();
 }

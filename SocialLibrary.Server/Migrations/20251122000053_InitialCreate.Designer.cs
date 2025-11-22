@@ -12,7 +12,7 @@ using SocialLibrary.Infrastructure.Persistence.DbContext;
 namespace SocialLibrary.Server.Migrations
 {
     [DbContext(typeof(SocialLibraryDbContext))]
-    [Migration("20251121013744_InitialCreate")]
+    [Migration("20251122000053_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -33,9 +33,8 @@ namespace SocialLibrary.Server.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ActivityType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("ActivityType")
+                        .HasColumnType("int");
 
                     b.Property<int?>("ContentId")
                         .HasColumnType("int");
@@ -84,11 +83,16 @@ namespace SocialLibrary.Server.Migrations
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("UserId1")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ActivityId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("UserId1");
 
                     b.ToTable("ActivityComments");
                 });
@@ -110,12 +114,16 @@ namespace SocialLibrary.Server.Migrations
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("UserId1")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ActivityId");
 
-                    b.HasIndex("UserId", "ActivityId")
-                        .IsUnique();
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId1");
 
                     b.ToTable("ActivityLikes");
                 });
@@ -128,17 +136,15 @@ namespace SocialLibrary.Server.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<int>("ContentType")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("ExternalId")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ExtraJson")
                         .HasColumnType("nvarchar(max)");
@@ -148,16 +154,12 @@ namespace SocialLibrary.Server.Migrations
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("Year")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ExternalId", "ContentType")
-                        .IsUnique();
 
                     b.ToTable("Contents");
                 });
@@ -179,12 +181,21 @@ namespace SocialLibrary.Server.Migrations
                     b.Property<int>("FollowingId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("UserId1")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("FollowerId");
 
                     b.HasIndex("FollowingId");
 
-                    b.HasIndex("FollowerId", "FollowingId")
-                        .IsUnique();
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId1");
 
                     b.ToTable("Follows");
                 });
@@ -203,9 +214,11 @@ namespace SocialLibrary.Server.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("EntryType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("EntryType")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
@@ -214,8 +227,7 @@ namespace SocialLibrary.Server.Migrations
 
                     b.HasIndex("ContentId");
 
-                    b.HasIndex("UserId", "ContentId")
-                        .IsUnique();
+                    b.HasIndex("UserId");
 
                     b.ToTable("LibraryEntries");
                 });
@@ -236,16 +248,14 @@ namespace SocialLibrary.Server.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId", "Name")
-                        .IsUnique();
+                    b.HasIndex("UserId");
 
                     b.ToTable("Lists");
                 });
@@ -271,8 +281,7 @@ namespace SocialLibrary.Server.Migrations
 
                     b.HasIndex("ContentId");
 
-                    b.HasIndex("ListId", "ContentId")
-                        .IsUnique();
+                    b.HasIndex("ListId");
 
                     b.ToTable("ListItems");
                 });
@@ -293,8 +302,7 @@ namespace SocialLibrary.Server.Migrations
 
                     b.Property<string>("Token")
                         .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("Used")
                         .HasColumnType("bit");
@@ -303,9 +311,6 @@ namespace SocialLibrary.Server.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Token")
-                        .IsUnique();
 
                     b.HasIndex("UserId");
 
@@ -339,8 +344,7 @@ namespace SocialLibrary.Server.Migrations
 
                     b.HasIndex("ContentId");
 
-                    b.HasIndex("UserId", "ContentId")
-                        .IsUnique();
+                    b.HasIndex("UserId");
 
                     b.ToTable("Ratings");
                 });
@@ -397,8 +401,7 @@ namespace SocialLibrary.Server.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -406,16 +409,9 @@ namespace SocialLibrary.Server.Migrations
 
                     b.Property<string>("Username")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Email")
-                        .IsUnique();
-
-                    b.HasIndex("Username")
-                        .IsUnique();
 
                     b.ToTable("Users");
                 });
@@ -425,7 +421,7 @@ namespace SocialLibrary.Server.Migrations
                     b.HasOne("SocialLibrary.Domain.Entities.Content", "Content")
                         .WithMany()
                         .HasForeignKey("ContentId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("SocialLibrary.Domain.Entities.Content", null)
                         .WithMany("Activities")
@@ -451,10 +447,14 @@ namespace SocialLibrary.Server.Migrations
                         .IsRequired();
 
                     b.HasOne("SocialLibrary.Domain.Entities.User", "User")
-                        .WithMany("ActivityComments")
+                        .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+
+                    b.HasOne("SocialLibrary.Domain.Entities.User", null)
+                        .WithMany("ActivityComments")
+                        .HasForeignKey("UserId1");
 
                     b.Navigation("Activity");
 
@@ -470,10 +470,14 @@ namespace SocialLibrary.Server.Migrations
                         .IsRequired();
 
                     b.HasOne("SocialLibrary.Domain.Entities.User", "User")
-                        .WithMany("ActivityLikes")
+                        .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+
+                    b.HasOne("SocialLibrary.Domain.Entities.User", null)
+                        .WithMany("ActivityLikes")
+                        .HasForeignKey("UserId1");
 
                     b.Navigation("Activity");
 
@@ -483,16 +487,24 @@ namespace SocialLibrary.Server.Migrations
             modelBuilder.Entity("SocialLibrary.Domain.Entities.Follow", b =>
                 {
                     b.HasOne("SocialLibrary.Domain.Entities.User", "FollowerUser")
-                        .WithMany("Followings")
+                        .WithMany()
                         .HasForeignKey("FollowerId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("SocialLibrary.Domain.Entities.User", "FollowingUser")
-                        .WithMany("Followers")
+                        .WithMany()
                         .HasForeignKey("FollowingId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+
+                    b.HasOne("SocialLibrary.Domain.Entities.User", null)
+                        .WithMany("Followers")
+                        .HasForeignKey("UserId");
+
+                    b.HasOne("SocialLibrary.Domain.Entities.User", null)
+                        .WithMany("Followings")
+                        .HasForeignKey("UserId1");
 
                     b.Navigation("FollowerUser");
 
