@@ -1,6 +1,7 @@
 import { Navbar, Nav, Container, Button, NavDropdown } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { authStore } from '../../features/auth/store/authStore';
 
 /**
  * Main Layout Component
@@ -8,11 +9,11 @@ import { useAuth } from '../../hooks/useAuth';
  * Shows "Login / Register" when logged out, user menu when logged in
  */
 const MainLayout = ({ children }) => {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout();
+    authStore.getState().logout();
     navigate('/login');
   };
 
@@ -33,9 +34,14 @@ const MainLayout = ({ children }) => {
                 Keşfet
               </Nav.Link>
               {isAuthenticated && (
-                <Nav.Link as={Link} to="/me/library">
-                  Kütüphanem
-                </Nav.Link>
+                <>
+                  <Nav.Link as={Link} to="/me/library">
+                    Kütüphanem
+                  </Nav.Link>
+                  <Nav.Link as={Link} to={`/users/${user?.userId}`}>
+                    Profilim
+                  </Nav.Link>
+                </>
               )}
             </Nav>
             <Nav>
@@ -64,9 +70,6 @@ const MainLayout = ({ children }) => {
                   id="user-nav-dropdown"
                   className="text-light"
                 >
-                  <NavDropdown.Item as={Link} to={`/users/${user?.userId}`}>
-                    Profilim
-                  </NavDropdown.Item>
                   <NavDropdown.Item as={Link} to="/settings">
                     Ayarlar
                   </NavDropdown.Item>

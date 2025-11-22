@@ -3,6 +3,40 @@
   min-height: 100vh;
 }
 
+/* Theme styles - Light Theme (default) */
+:root,
+[data-bs-theme="light"] {
+  --bs-body-bg: #ffffff;
+  --bs-body-color: #212529;
+  --bg-color: #f5f5f5;
+  --text-color: #212529;
+  --card-bg: #ffffff;
+  --border-color: #dee2e6;
+}
+
+/* Theme styles - Dark Theme */
+[data-bs-theme="dark"] {
+  --bs-body-bg: #212529;
+  --bs-body-color: #ffffff;
+  --bg-color: #1a1d20;
+  --text-color: #ffffff;
+  --card-bg: #2b2e33;
+  --border-color: #495057;
+}
+
+/* Body background color */
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Card background in dark mode */
+[data-bs-theme="dark"] .card {
+  background-color: var(--card-bg);
+  border-color: var(--border-color);
+}
+
 /* Custom scrollbar for webkit browsers */
 ::-webkit-scrollbar {
   width: 8px;
@@ -10,7 +44,7 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--bg-color);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -40,4 +74,8 @@ a {
 .card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-bs-theme="dark"] .card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
 }
