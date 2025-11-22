@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Form, Button, Alert, Container, Card } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import { useRegister } from '../hooks/useRegister';
 
 /**
  * Register Form Component
- * Görsel arayüz - backend bağlantısı yok
- * Kullanıcı kayıt formunu gösterir
+ * Backend bağlantılı - /api/Auth/register endpoint'ini kullanır
+ * Kullanıcı kayıt formunu gösterir ve backend'e istek gönderir
  * Proje metni 2.1.1: Kayıt Ol Formu - Kullanıcı adı, e-posta, şifre ve şifre tekrarı
  */
 const RegisterForm = () => {
+  const { register, isLoading, error, clearError } = useRegister();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -16,7 +18,13 @@ const RegisterForm = () => {
     confirmPassword: '',
   });
   const [validationErrors, setValidationErrors] = useState({});
-  const [showError, setShowError] = useState(false);
+
+  // Clear error when form changes
+  useEffect(() => {
+    if (error) {
+      // Error will be shown via the error prop from useRegister
+    }
+  }, [formData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -30,6 +38,10 @@ const RegisterForm = () => {
         ...prev,
         [name]: null,
       }));
+    }
+    // Clear API error when user starts typing
+    if (error) {
+      clearError();
     }
   };
 
@@ -67,10 +79,16 @@ const RegisterForm = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validate()) {
-      // Şimdilik sadece görsel - backend bağlantısı yok
-      console.log('Register form submitted:', formData);
-      setShowError(false);
-      alert('Kayıt formu gönderildi! (Backend bağlantısı henüz aktif değil)');
+      // Backend'e register isteği gönder
+      // useRegister hook'u otomatik olarak:
+      // - API'yi çağırır
+      // - Token'ı store'a kaydeder
+      // - Başarılı olursa ana sayfaya yönlendirir
+      register({
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+      });
     }
   };
 
@@ -82,9 +100,10 @@ const RegisterForm = () => {
             <h2>Kayıt Ol</h2>
           </Card.Title>
           
-          {showError && (
-            <Alert variant="danger" dismissible onClose={() => setShowError(false)}>
-              Bu e-posta zaten kullanımda
+          {/* Backend'den gelen hata mesajı */}
+          {error && (
+            <Alert variant="danger" dismissible onClose={clearError} className="mb-3">
+              {error}
             </Alert>
           )}
 
@@ -99,6 +118,7 @@ const RegisterForm = () => {
                 isInvalid={!!validationErrors.username}
                 placeholder="Kullanıcı adınızı girin"
                 required
+                disabled={isLoading}
               />
               <Form.Control.Feedback type="invalid">
                 {validationErrors.username}
@@ -115,6 +135,7 @@ const RegisterForm = () => {
                 isInvalid={!!validationErrors.email}
                 placeholder="ornek@email.com"
                 required
+                disabled={isLoading}
               />
               <Form.Control.Feedback type="invalid">
                 {validationErrors.email}
@@ -131,6 +152,7 @@ const RegisterForm = () => {
                 isInvalid={!!validationErrors.password}
                 placeholder="Şifrenizi girin (min. 6 karakter)"
                 required
+                disabled={isLoading}
               />
               <Form.Control.Feedback type="invalid">
                 {validationErrors.password}
@@ -147,6 +169,7 @@ const RegisterForm = () => {
                 isInvalid={!!validationErrors.confirmPassword}
                 placeholder="Şifrenizi tekrar girin"
                 required
+                disabled={isLoading}
               />
               <Form.Control.Feedback type="invalid">
                 {validationErrors.confirmPassword}
@@ -158,8 +181,9 @@ const RegisterForm = () => {
                 variant="primary"
                 type="submit"
                 size="lg"
+                disabled={isLoading}
               >
-                Kayıt Ol
+                {isLoading ? 'Kayıt yapılıyor...' : 'Kayıt Ol'}
               </Button>
             </div>
 

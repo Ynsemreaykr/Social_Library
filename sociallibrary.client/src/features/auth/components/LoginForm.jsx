@@ -1,19 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Form, Button, Alert, Container, Card } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useLogin } from '../hooks/useLogin';
 
 /**
  * Login Form Component
- * Görsel arayüz - backend bağlantısı yok
- * Kullanıcı giriş formunu gösterir
+ * Backend bağlantılı - /api/Auth/login endpoint'ini kullanır
+ * Kullanıcı giriş formunu gösterir ve backend'e istek gönderir
  */
 const LoginForm = () => {
+  const { login, isLoading, error, clearError } = useLogin();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
   const [validationErrors, setValidationErrors] = useState({});
-  const [showError, setShowError] = useState(false);
+
+  // Clear error when form changes
+  useEffect(() => {
+    if (error) {
+      // Error will be shown via the error prop from useLogin
+    }
+  }, [formData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -27,6 +36,10 @@ const LoginForm = () => {
         ...prev,
         [name]: null,
       }));
+    }
+    // Clear API error when user starts typing
+    if (error) {
+      clearError();
     }
   };
 
@@ -47,10 +60,12 @@ const LoginForm = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validate()) {
-      // Şimdilik sadece görsel - backend bağlantısı yok
-      console.log('Login form submitted:', formData);
-      setShowError(false);
-      alert('Giriş formu gönderildi! (Backend bağlantısı henüz aktif değil)');
+      // Backend'e login isteği gönder
+      // useLogin hook'u otomatik olarak:
+      // - API'yi çağırır
+      // - Token'ı store'a kaydeder
+      // - Başarılı olursa ana sayfaya yönlendirir
+      login(formData);
     }
   };
 
@@ -62,9 +77,10 @@ const LoginForm = () => {
             <h2>Giriş Yap</h2>
           </Card.Title>
           
-          {showError && (
-            <Alert variant="danger" dismissible onClose={() => setShowError(false)}>
-              E-posta veya şifre hatalı
+          {/* Backend'den gelen hata mesajı */}
+          {error && (
+            <Alert variant="danger" dismissible onClose={clearError} className="mb-3">
+              {error}
             </Alert>
           )}
 
@@ -79,6 +95,7 @@ const LoginForm = () => {
                 isInvalid={!!validationErrors.email}
                 placeholder="ornek@email.com"
                 required
+                disabled={isLoading}
               />
               <Form.Control.Feedback type="invalid">
                 {validationErrors.email}
@@ -95,6 +112,7 @@ const LoginForm = () => {
                 isInvalid={!!validationErrors.password}
                 placeholder="Şifrenizi girin"
                 required
+                disabled={isLoading}
               />
               <Form.Control.Feedback type="invalid">
                 {validationErrors.password}
@@ -106,8 +124,9 @@ const LoginForm = () => {
                 variant="primary"
                 type="submit"
                 size="lg"
+                disabled={isLoading}
               >
-                Giriş Yap
+                {isLoading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
               </Button>
             </div>
 

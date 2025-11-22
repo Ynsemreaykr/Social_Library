@@ -29,10 +29,36 @@ export const useLogin = () => {
     },
     onError: (error) => {
       // Handle login errors (e.g., invalid credentials)
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        'Login failed. Please check your credentials.';
+      let errorMessage = 'Giriş başarısız oldu. Lütfen bilgilerinizi kontrol edin.';
+      
+      if (error.response) {
+        // Backend'den gelen hata
+        const backendError = error.response.data;
+        
+        // Backend'den gelen mesajı parse et
+        if (typeof backendError === 'string') {
+          errorMessage = backendError;
+        } else if (backendError?.message) {
+          errorMessage = backendError.message;
+        } else if (backendError?.title) {
+          errorMessage = backendError.title;
+        } else if (error.response.status === 500) {
+          // 500 hatası için backend'den gelen detay mesajını kontrol et
+          const detailMessage = backendError?.detail || backendError?.message;
+          if (detailMessage) {
+            if (detailMessage.includes('User not found')) {
+              errorMessage = 'Kullanıcı bulunamadı. E-posta adresinizi kontrol edin.';
+            } else if (detailMessage.includes('Invalid password')) {
+              errorMessage = 'Şifre hatalı. Lütfen tekrar deneyin.';
+            } else {
+              errorMessage = detailMessage;
+            }
+          }
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       setError(errorMessage);
     },
   });

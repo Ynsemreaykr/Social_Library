@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Container, Button, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../../hooks/useAuth';
 import ActivityCard from '../components/ActivityCard';
 
 /**
@@ -83,6 +84,7 @@ const mockActivities = [
 ];
 
 const FeedPage = () => {
+  const { isAuthenticated } = useAuth();
   const [activities] = useState(mockActivities);
   const [visibleCount, setVisibleCount] = useState(3); // Başlangıçta 3 aktivite göster
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -97,8 +99,37 @@ const FeedPage = () => {
     }, 500);
   };
 
-  const visibleActivities = activities.slice(0, visibleCount);
+  const visibleActivities = isAuthenticated ? activities.slice(0, visibleCount) : [];
   const hasMore = visibleCount < activities.length;
+
+  // Giriş yapmamış kullanıcılar için hoş geldin mesajı
+  if (!isAuthenticated) {
+    return (
+      <Container>
+        <div className="mb-4">
+          <h2>Ana Sayfa</h2>
+        </div>
+        <Alert variant="info" className="text-center">
+          <Alert.Heading>Hoş Geldiniz!</Alert.Heading>
+          <p>
+            Aktivite akışını görmek için{' '}
+            <Link to="/login" style={{ textDecoration: 'none', fontWeight: 'bold' }}>
+              giriş yapın
+            </Link>{' '}
+            veya{' '}
+            <Link to="/register" style={{ textDecoration: 'none', fontWeight: 'bold' }}>
+              kayıt olun
+            </Link>
+            .
+          </p>
+          <p className="mb-0">
+            Platformda takip ettiğiniz kullanıcıların aktivitelerini burada
+            görebilirsiniz.
+          </p>
+        </Alert>
+      </Container>
+    );
+  }
 
   return (
     <Container>
@@ -110,7 +141,7 @@ const FeedPage = () => {
         </p>
       </div>
 
-      {/* Aktivite kartları listesi */}
+      {/* Aktivite kartları listesi - Sadece giriş yapmış kullanıcılar için */}
       {visibleActivities.length > 0 ? (
         <>
           <div>

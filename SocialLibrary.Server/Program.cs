@@ -73,6 +73,24 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // ---------------------------------------------------------
 
+// CORS Policy - Frontend'den gelen isteklere izin ver
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins(
+                "https://localhost:7105",  // Backend'in kendi domain'i (aynı origin'den serve edildiği için)
+                "http://localhost:7105",
+                "http://localhost:5162",
+                "https://localhost:5173",  // Vite dev server
+                "http://localhost:5173"
+            )
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials(); // JWT token için gerekli
+    });
+});
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
@@ -118,8 +136,12 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+// Static files - Her zaman kullan (hem development hem production)
 app.UseDefaultFiles();
 app.UseStaticFiles();
+
+// CORS - Authentication'dan ÖNCE kullanılmalı
+app.UseCors();
 
 if (app.Environment.IsDevelopment())
 {
@@ -133,6 +155,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// SPA fallback - index.html'i serve et
 app.MapFallbackToFile("/index.html");
 
 // Development modunda hem React app hem Swagger'ı aç

@@ -8,4 +8,9 @@ export default defineConfig({
     port: 5173,
     open: true, // Otomatik tarayıcı açma
   },
+  build: {
+    // Build output'u Server'ın wwwroot klasörüne koy
+    outDir: '../SocialLibrary.Server/wwwroot',
+    emptyOutDir: true, // Build öncesi klasörü temizle
+  },
 })

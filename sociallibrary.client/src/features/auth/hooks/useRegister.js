@@ -30,11 +30,34 @@ export const useRegister = () => {
     },
     onError: (error) => {
       // Handle registration errors (e.g., email already exists)
-      const errorMessage =
-        error.response?.data?.message ||
-        error.response?.data ||
-        error.message ||
-        'Registration failed. Please try again.';
+      let errorMessage = 'Kayıt işlemi başarısız oldu. Lütfen tekrar deneyin.';
+      
+      if (error.response) {
+        // Backend'den gelen hata
+        const backendError = error.response.data;
+        
+        // Backend'den gelen mesajı parse et
+        if (typeof backendError === 'string') {
+          errorMessage = backendError;
+        } else if (backendError?.message) {
+          errorMessage = backendError.message;
+        } else if (backendError?.title) {
+          errorMessage = backendError.title;
+        } else if (error.response.status === 500) {
+          // 500 hatası için backend'den gelen detay mesajını kontrol et
+          const detailMessage = backendError?.detail || backendError?.message;
+          if (detailMessage) {
+            if (detailMessage.includes('already taken') || detailMessage.includes('kullanımda')) {
+              errorMessage = 'Bu e-posta veya kullanıcı adı zaten kullanımda.';
+            } else {
+              errorMessage = detailMessage;
+            }
+          }
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       setError(errorMessage);
     },
   });

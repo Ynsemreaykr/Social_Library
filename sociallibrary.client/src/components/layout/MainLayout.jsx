@@ -1,12 +1,21 @@
-import { Navbar, Nav, Container, Button } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Navbar, Nav, Container, Button, NavDropdown } from 'react-bootstrap';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 
 /**
  * Main Layout Component
- * Top navigation bar with logo and navigation links
- * Basitleştirilmiş versiyon - sadece görsel
+ * Top navigation bar with logo, navigation links, and auth section
+ * Shows "Login / Register" when logged out, user menu when logged in
  */
 const MainLayout = ({ children }) => {
+  const { isAuthenticated, user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   return (
     <div className="d-flex flex-column min-vh-100">
       <Navbar bg="dark" variant="dark" expand="lg" className="mb-4">
@@ -23,19 +32,65 @@ const MainLayout = ({ children }) => {
               <Nav.Link as={Link} to="/discover">
                 Keşfet
               </Nav.Link>
+              {isAuthenticated && (
+                <Nav.Link as={Link} to="/me/library">
+                  Kütüphanem
+                </Nav.Link>
+              )}
             </Nav>
             <Nav>
-              <Button
-                variant="outline-light"
-                as={Link}
-                to="/login"
-                className="me-2"
-              >
-                Giriş Yap
-              </Button>
-              <Button variant="primary" as={Link} to="/register">
-                Kayıt Ol
-              </Button>
+              {isAuthenticated ? (
+                // Giriş yapmış kullanıcı için kullanıcı menüsü
+                <NavDropdown
+                  title={
+                    <span>
+                      {user?.avatarUrl ? (
+                        <img
+                          src={user.avatarUrl}
+                          alt={user.username}
+                          style={{
+                            width: '30px',
+                            height: '30px',
+                            borderRadius: '50%',
+                            marginRight: '8px',
+                          }}
+                        />
+                      ) : (
+                        <span className="me-2">👤</span>
+                      )}
+                      {user?.username || 'Kullanıcı'}
+                    </span>
+                  }
+                  id="user-nav-dropdown"
+                  className="text-light"
+                >
+                  <NavDropdown.Item as={Link} to={`/users/${user?.userId}`}>
+                    Profilim
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={Link} to="/settings">
+                    Ayarlar
+                  </NavDropdown.Item>
+                  <NavDropdown.Divider />
+                  <NavDropdown.Item onClick={handleLogout}>
+                    Çıkış Yap
+                  </NavDropdown.Item>
+                </NavDropdown>
+              ) : (
+                // Giriş yapmamış kullanıcı için login/register butonları
+                <>
+                  <Button
+                    variant="outline-light"
+                    as={Link}
+                    to="/login"
+                    className="me-2"
+                  >
+                    Giriş Yap
+                  </Button>
+                  <Button variant="primary" as={Link} to="/register">
+                    Kayıt Ol
+                  </Button>
+                </>
+              )}
             </Nav>
           </Navbar.Collapse>
         </Container>

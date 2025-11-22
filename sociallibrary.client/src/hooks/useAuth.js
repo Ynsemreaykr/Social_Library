@@ -3,8 +3,11 @@ import { authStore } from '../features/auth/store/authStore';
 /**
  * Convenience hook to access auth store
  * Provides easy access to auth state and actions
+ * Zustand store'dan reactive olarak veri alır
  */
 export const useAuth = () => {
+  // Zustand store'dan reactive olarak veri al
+  // Her selector otomatik olarak component'i subscribe eder
   const token = authStore((state) => state.token);
   const user = authStore((state) => state.user);
   const login = authStore((state) => state.login);
