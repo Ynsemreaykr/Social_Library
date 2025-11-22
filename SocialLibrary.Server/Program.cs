@@ -8,6 +8,7 @@ using SocialLibrary.Infrastructure.Persistence.DbContext;
 using SocialLibrary.Infrastructure.Repositories;
 using SocialLibrary.Infrastructure.Repositories.UnitOfWork;
 using SocialLibrary.Infrastructure.Services;
+using SocialLibrary.Application.Interfaces.Services;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,6 +29,9 @@ builder.Services.AddSingleton<JwtTokenGenerator>();
 
 // Content Service
 builder.Services.AddScoped<IContentService, ContentService>();
+
+// Feed Service
+builder.Services.AddScoped<IFeedService, FeedService>();
 
 // JWT
 var jwtSection = builder.Configuration.GetSection("Jwt");
@@ -90,5 +94,50 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapFallbackToFile("/index.html");
+
+// Development modunda hem React app hem Swagger'ı aç
+if (app.Environment.IsDevelopment())
+{
+    // Uygulama başladığında browser'ları aç
+    var lifetime = app.Services.GetRequiredService<Microsoft.Extensions.Hosting.IHostApplicationLifetime>();
+    
+    lifetime.ApplicationStarted.Register(() =>
+    {
+        Task.Run(async () =>
+        {
+            // Uygulamanın tamamen başlaması için kısa bir bekleme
+            await Task.Delay(1500);
+            
+            try
+            {
+                // Base URL'yi configuration'dan al veya varsayılan kullan
+                var baseUrl = "https://localhost:7105"; // Default HTTPS URL
+                
+                // React uygulamasını aç (ana sayfa)
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = baseUrl,
+                    UseShellExecute = true
+                });
+                
+                // Swagger'ı aç (500ms sonra)
+                await Task.Delay(500);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = $"{baseUrl}/swagger",
+                    UseShellExecute = true
+                });
+                
+                Console.WriteLine($"✓ React app açıldı: {baseUrl}");
+                Console.WriteLine($"✓ Swagger açıldı: {baseUrl}/swagger");
+            }
+            catch (Exception ex)
+            {
+                // Hata olsa bile uygulama çalışmaya devam etsin
+                Console.WriteLine($"⚠ Browser açılırken hata: {ex.Message}");
+            }
+        });
+    });
+}
 
 app.Run();
