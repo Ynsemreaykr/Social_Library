@@ -3,7 +3,15 @@ import MainLayout from '../components/layout/MainLayout';
 import ProtectedRoute from './ProtectedRoute';
 import LoginPage from '../features/auth/pages/LoginPage';
 import RegisterPage from '../features/auth/pages/RegisterPage';
+import ForgotPasswordPage from '../features/auth/pages/ForgotPasswordPage';
 import FeedPage from '../features/feed/pages/FeedPage';
+import DiscoverPage from '../features/content/pages/DiscoverPage';
+import ContentDetailPage from '../features/content/pages/ContentDetailPage';
+import UserProfilePage from '../features/user/pages/UserProfilePage';
+import LibraryPage from '../features/library/pages/LibraryPage';
+import EditProfilePage from '../features/user/pages/EditProfilePage';
+import SettingsPage from '../features/settings/pages/SettingsPage';
+import CreateListPage from '../features/list/pages/CreateListPage';
 
 /**
  * App Router
@@ -40,6 +48,14 @@ const AppRouter = () => {
             </MainLayout>
           }
         />
+        <Route
+          path="/forgot-password"
+          element={
+            <MainLayout>
+              <ForgotPasswordPage />
+            </MainLayout>
+          }
+        />
 
         {/* Public routes - main layout */}
         <Route
@@ -50,6 +66,22 @@ const AppRouter = () => {
             </MainLayout>
           }
         />
+        <Route
+          path="/discover"
+          element={
+            <MainLayout>
+              <DiscoverPage />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/content/:type/:id"
+          element={
+            <MainLayout>
+              <ContentDetailPage />
+            </MainLayout>
+          }
+        />
 
         {/* Protected routes - require authentication */}
         <Route
@@ -57,7 +89,51 @@ const AppRouter = () => {
           element={
             <ProtectedRoute>
               <MainLayout>
-                <div>Kütüphanem - Coming Soon</div>
+                <LibraryPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* User Profile Pages */}
+        <Route
+          path="/users/:userId"
+          element={
+            <MainLayout>
+              <UserProfilePage />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/users/:userId/edit"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <EditProfilePage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Settings Page */}
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <SettingsPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* List Pages */}
+        <Route
+          path="/lists/create"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <CreateListPage />
               </MainLayout>
             </ProtectedRoute>
           }

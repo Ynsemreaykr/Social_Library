@@ -29,7 +29,7 @@ export const useLogin = () => {
     },
     onError: (error) => {
       // Handle login errors (e.g., invalid credentials)
-      let errorMessage = 'Giriş başarısız oldu. Lütfen bilgilerinizi kontrol edin.';
+      let errorMessage = 'Şifreniz veya e-postanız yanlış.';
       
       if (error.response) {
         // Backend'den gelen hata
@@ -37,26 +37,48 @@ export const useLogin = () => {
         
         // Backend'den gelen mesajı parse et
         if (typeof backendError === 'string') {
-          errorMessage = backendError;
+          // Backend mesajını kontrol et ve genel mesaja çevir
+          if (backendError.includes('User not found') || 
+              backendError.includes('Invalid password') ||
+              backendError.includes('Invalid') ||
+              backendError.includes('not found')) {
+            errorMessage = 'Şifreniz veya e-postanız yanlış.';
+          } else {
+            errorMessage = backendError;
+          }
         } else if (backendError?.message) {
-          errorMessage = backendError.message;
+          const msg = backendError.message;
+          if (msg.includes('User not found') || 
+              msg.includes('Invalid password') ||
+              msg.includes('Invalid') ||
+              msg.includes('not found')) {
+            errorMessage = 'Şifreniz veya e-postanız yanlış.';
+          } else {
+            errorMessage = msg;
+          }
         } else if (backendError?.title) {
           errorMessage = backendError.title;
         } else if (error.response.status === 500) {
           // 500 hatası için backend'den gelen detay mesajını kontrol et
           const detailMessage = backendError?.detail || backendError?.message;
           if (detailMessage) {
-            if (detailMessage.includes('User not found')) {
-              errorMessage = 'Kullanıcı bulunamadı. E-posta adresinizi kontrol edin.';
-            } else if (detailMessage.includes('Invalid password')) {
-              errorMessage = 'Şifre hatalı. Lütfen tekrar deneyin.';
+            if (detailMessage.includes('User not found') || 
+                detailMessage.includes('Invalid password') ||
+                detailMessage.includes('Invalid') ||
+                detailMessage.includes('not found')) {
+              errorMessage = 'Şifreniz veya e-postanız yanlış.';
             } else {
               errorMessage = detailMessage;
             }
           }
         }
       } else if (error.message) {
-        errorMessage = error.message;
+        // Network hatası gibi durumlar
+        if (error.message.includes('Network') || error.message.includes('timeout')) {
+          errorMessage = 'Backend\'e bağlanılamıyor. Lütfen backend\'in çalıştığından emin olun.';
+        } else {
+          errorMessage = error.message;
+        }
       }
       
       setError(errorMessage);

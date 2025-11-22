@@ -8,12 +8,26 @@ import { useAuth } from '../../hooks/useAuth';
  * Shows "Login / Register" when logged out, user menu when logged in
  */
 const MainLayout = ({ children }) => {
-  const { isAuthenticated, user, logout } = useAuth();
+  // GEÇİCİ: Auth kontrolü devre dışı - arayüz testi için
+  // const { isAuthenticated, user, logout } = useAuth();
+  
+  // Mock kullanıcı bilgileri - arayüz testi için
+  const isAuthenticated = true; // Geçici olarak her zaman authenticated
+  const user = { 
+    userId: 1, 
+    username: 'Test Kullanıcı', 
+    email: 'test@example.com' 
+  };
+  const logout = () => {
+    // Geçici olarak boş
+  };
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout();
-    navigate('/login');
+    // GEÇİCİ: Logout devre dışı
+    // logout();
+    // navigate('/login');
+    console.log('Logout (geçici olarak devre dışı)');
   };
 
   return (
@@ -33,9 +47,14 @@ const MainLayout = ({ children }) => {
                 Keşfet
               </Nav.Link>
               {isAuthenticated && (
-                <Nav.Link as={Link} to="/me/library">
-                  Kütüphanem
-                </Nav.Link>
+                <>
+                  <Nav.Link as={Link} to="/me/library">
+                    Kütüphanem
+                  </Nav.Link>
+                  <Nav.Link as={Link} to={`/users/1`}>
+                    Profilim
+                  </Nav.Link>
+                </>
               )}
             </Nav>
             <Nav>
@@ -64,9 +83,6 @@ const MainLayout = ({ children }) => {
                   id="user-nav-dropdown"
                   className="text-light"
                 >
-                  <NavDropdown.Item as={Link} to={`/users/${user?.userId}`}>
-                    Profilim
-                  </NavDropdown.Item>
                   <NavDropdown.Item as={Link} to="/settings">
                     Ayarlar
                   </NavDropdown.Item>
