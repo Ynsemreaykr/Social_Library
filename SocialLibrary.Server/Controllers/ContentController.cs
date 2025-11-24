@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SocialLibrary.Application.DTOs.Content;
 using SocialLibrary.Application.Interfaces.Services;
+using SocialLibrary.Domain.Enums;
 
 namespace SocialLibrary.Server.Controllers;
 
@@ -25,6 +26,22 @@ public class ContentController : ControllerBase
         return Ok(list);
     }
 
+    /// <summary>
+    /// Search and filter content
+    /// </summary>
+    [HttpGet("search")]
+    [AllowAnonymous]
+    public async Task<ActionResult<List<ContentDto>>> Search(
+        [FromQuery] string? query,
+        [FromQuery] string? contentType,
+        [FromQuery] int? minYear,
+        [FromQuery] int? maxYear,
+        [FromQuery] int? minRating)
+    {
+        var results = await _contents.SearchAsync(query, contentType, minYear, maxYear, minRating);
+        return Ok(results);
+    }
+
     [HttpGet("{id:int}")]
     [AllowAnonymous]
     public async Task<ActionResult<ContentDto>> GetById(int id)
@@ -34,6 +51,46 @@ public class ContentController : ControllerBase
             return NotFound();
 
         return Ok(item);
+    }
+
+    /// <summary>
+    /// Get content detail with platform rating and review count
+    /// </summary>
+    [HttpGet("{id:int}/detail")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ContentDetailDto>> GetDetail(int id)
+    {
+        var detail = await _contents.GetDetailAsync(id);
+        if (detail == null)
+            return NotFound();
+
+        return Ok(detail);
+    }
+
+    /// <summary>
+    /// Get or create content by external ID (TMDb or Google Books ID)
+    /// </summary>
+    [HttpPost("external")]
+    [Authorize]
+    public async Task<ActionResult<ContentDto>> GetOrCreateByExternalId([FromBody] GetOrCreateContentRequestDto dto)
+    {
+        try
+        {
+            var contentType = dto.ContentType.ToLower() == "movie" ? ContentType.Movie : ContentType.Book;
+            var content = await _contents.GetOrCreateByExternalIdAsync(
+                dto.ExternalId,
+                contentType,
+                dto.Title,
+                dto.Year,
+                dto.PosterUrl,
+                dto.ExtraJson
+            );
+            return Ok(content);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
     }
 
     // Sadece login olanlar içerik ekleyebilsin
@@ -67,3 +124,12 @@ public class ContentController : ControllerBase
         return NoContent();
     }
 }
+
+public record GetOrCreateContentRequestDto(
+    string ExternalId,
+    string ContentType,
+    string Title,
+    int? Year = null,
+    string? PosterUrl = null,
+    string? ExtraJson = null
+);

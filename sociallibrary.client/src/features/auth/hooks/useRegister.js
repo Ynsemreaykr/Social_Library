@@ -13,8 +13,8 @@ export const useRegister = () => {
   const [error, setError] = useState(null);
 
   const mutation = useMutation({
-    mutationFn: ({ username, email, password }) =>
-      registerApi(username, email, password),
+    mutationFn: ({ username, email, password, bio, avatarUrl }) =>
+      registerApi(username, email, password, bio, avatarUrl),
     onSuccess: (data) => {
       // On successful registration:
       // 1. Store token and user in auth store
@@ -55,7 +55,12 @@ export const useRegister = () => {
           }
         }
       } else if (error.message) {
-        errorMessage = error.message;
+        // Network hatası gibi durumlar
+        if (error.message.includes('Network') || error.message.includes('timeout') || error.message.includes('bağlanılamıyor')) {
+          errorMessage = 'Backend\'e bağlanılamıyor. Lütfen backend\'in çalıştığından emin olun.';
+        } else {
+          errorMessage = error.message;
+        }
       }
       
       setError(errorMessage);

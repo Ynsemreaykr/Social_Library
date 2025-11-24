@@ -1,95 +1,190 @@
 import { create } from 'zustand';
+import { rateContent, getUserRating as getUserRatingApi } from '../../../api/ratingApi';
+import { addOrUpdateReview, deleteReview, getUserReview as getUserReviewApi } from '../../../api/reviewApi';
+import { authStore } from '../../auth/store/authStore';
 
 /**
  * Ratings Store (Puanlar Store)
- * Kullanıcının verdiği puanları ve yorumları yönetir (localStorage ile)
- * Şimdilik localStorage kullanılıyor, backend bağlantısı eklenecek
+ * Backend API'ye bağlı - localStorage yerine backend kullanıyor
+ * Kullanıcının verdiği puanları ve yorumları backend'de saklar
  */
 const useRatingsStore = create((set, get) => {
-  // localStorage'dan puanları ve yorumları yükle
-  const loadRatings = () => {
-    try {
-      const stored = localStorage.getItem('user_ratings');
-      return stored ? JSON.parse(stored) : {
-        ratings: [], // [{ contentId, contentType, rating, date }]
-        reviews: [], // [{ contentId, contentType, review, date }]
-      };
-    } catch (error) {
-      console.error('Error loading ratings:', error);
-      return {
-        ratings: [],
-        reviews: [],
-      };
-    }
-  };
-
-  // localStorage'a kaydet
-  const saveRatings = (ratings) => {
-    try {
-      localStorage.setItem('user_ratings', JSON.stringify(ratings));
-    } catch (error) {
-      console.error('Error saving ratings:', error);
-    }
-  };
-
-  const initialState = loadRatings();
-
   return {
-    ...initialState,
+    ratings: {}, // Cache: { contentId: { score, loaded } }
+    reviews: {}, // Cache: { contentId: { text, loaded } }
+    isLoading: false,
 
-    // Puan ver
-    addRating: (contentId, contentType, rating) => {
-      const state = get();
-      const newRatings = state.ratings.filter(
-        r => !(r.contentId === contentId && r.contentType === contentType)
-      );
-      newRatings.push({
-        contentId,
-        contentType,
-        rating,
-        date: new Date().toISOString(),
-      });
-      const newState = { ...state, ratings: newRatings };
-      saveRatings(newState);
-      set(newState);
+    // Puan ver - Backend API'ye bağlı
+    addRating: async (contentId, contentType, rating) => {
+      try {
+        const token = authStore.getState().token;
+        if (!token) {
+          throw new Error('Giriş yapmanız gerekiyor.');
+        }
+
+        // Backend'e puan gönder
+        await rateContent(contentId, rating);
+        
+        // Local state'i güncelle (cache)
+        const state = get();
+        set({
+          ratings: {
+            ...state.ratings,
+            [contentId]: { score: rating, loaded: true }
+          }
+        });
+        
+        return { success: true };
+      } catch (error) {
+        console.error('Error adding rating:', error);
+        throw error;
+      }
     },
 
-    // Yorum yap
-    addReview: (contentId, contentType, review) => {
-      const state = get();
-      const newReviews = state.reviews.filter(
-        r => !(r.contentId === contentId && r.contentType === contentType)
-      );
-      newReviews.push({
-        contentId,
-        contentType,
-        review,
-        date: new Date().toISOString(),
-      });
-      const newState = { ...state, reviews: newReviews };
-      saveRatings(newState);
-      set(newState);
+    // Kullanıcının puanını backend'den yükle
+    loadUserRating: async (contentId) => {
+      try {
+        const token = authStore.getState().token;
+        if (!token) {
+          return null;
+        }
+
+        const state = get();
+        // Zaten yüklenmişse cache'den dön
+        if (state.ratings[contentId]?.loaded) {
+          return state.ratings[contentId].score;
+        }
+
+        // Backend'den çek
+        const rating = await getUserRatingApi(contentId);
+        
+        if (rating) {
+          set({
+            ratings: {
+              ...state.ratings,
+              [contentId]: { score: rating.score, loaded: true }
+            }
+          });
+          return rating.score;
+        } else {
+          // Puan yok, ama yüklendi olarak işaretle
+          set({
+            ratings: {
+              ...state.ratings,
+              [contentId]: { score: null, loaded: true }
+            }
+          });
+          return null;
+        }
+      } catch (error) {
+        console.error('Error loading user rating:', error);
+        return null;
+      }
     },
 
-    // Kullanıcının puanını al
+    // Yorum yap - Backend API'ye bağlı
+    addReview: async (contentId, contentType, review) => {
+      try {
+        const token = authStore.getState().token;
+        if (!token) {
+          throw new Error('Giriş yapmanız gerekiyor.');
+        }
+
+        // Backend'e yorum gönder
+        await addOrUpdateReview(contentId, review);
+        
+        // Local state'i güncelle (cache)
+        const state = get();
+        set({
+          reviews: {
+            ...state.reviews,
+            [contentId]: { text: review, loaded: true }
+          }
+        });
+        
+        return { success: true };
+      } catch (error) {
+        console.error('Error adding review:', error);
+        throw error;
+      }
+    },
+
+    // Kullanıcının yorumunu backend'den yükle
+    loadUserReview: async (contentId) => {
+      try {
+        const token = authStore.getState().token;
+        if (!token) {
+          return null;
+        }
+
+        const state = get();
+        // Zaten yüklenmişse cache'den dön
+        if (state.reviews[contentId]?.loaded) {
+          return state.reviews[contentId].text;
+        }
+
+        // Backend'den çek
+        const review = await getUserReviewApi(contentId);
+        
+        if (review) {
+          set({
+            reviews: {
+              ...state.reviews,
+              [contentId]: { text: review.text, loaded: true }
+            }
+          });
+          return review.text;
+        } else {
+          // Yorum yok, ama yüklendi olarak işaretle
+          set({
+            reviews: {
+              ...state.reviews,
+              [contentId]: { text: null, loaded: true }
+            }
+          });
+          return null;
+        }
+      } catch (error) {
+        console.error('Error loading user review:', error);
+        return null;
+      }
+    },
+
+    // Yorum sil - Backend API'ye bağlı
+    deleteUserReview: async (contentId) => {
+      try {
+        const token = authStore.getState().token;
+        if (!token) {
+          throw new Error('Giriş yapmanız gerekiyor.');
+        }
+
+        await deleteReview(contentId);
+        
+        // Local state'den kaldır
+        const state = get();
+        const newReviews = { ...state.reviews };
+        delete newReviews[contentId];
+        set({ reviews: newReviews });
+        
+        return { success: true };
+      } catch (error) {
+        console.error('Error deleting review:', error);
+        throw error;
+      }
+    },
+
+    // Kullanıcının puanını al - Cache'den (eğer yüklenmişse)
     getUserRating: (contentId, contentType) => {
       const state = get();
-      const rating = state.ratings.find(
-        r => r.contentId === contentId && r.contentType === contentType
-      );
-      return rating ? rating.rating : null;
+      return state.ratings[contentId]?.score ?? null;
     },
 
-    // Kullanıcının yorumunu al
+    // Kullanıcının yorumunu al - Cache'den (eğer yüklenmişse)
     getUserReview: (contentId, contentType) => {
       const state = get();
-      const review = state.reviews.find(
-        r => r.contentId === contentId && r.contentType === contentType
-      );
-      return review ? review.review : null;
+      return state.reviews[contentId]?.text ?? null;
     },
   };
 });
 
 export default useRatingsStore;
-

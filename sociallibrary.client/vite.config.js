@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    open: true, // Otomatik tarayıcı açma
+    open: false, // Otomatik tarayıcı açma KAPALI - sadece backend kullanılacak
   },
   build: {
     // Build output'u Server'ın wwwroot klasörüne koy

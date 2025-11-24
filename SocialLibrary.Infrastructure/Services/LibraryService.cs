@@ -3,21 +3,25 @@ using SocialLibrary.Application.DTOs.Library;
 using SocialLibrary.Application.Interfaces.Repositories;
 using SocialLibrary.Application.Interfaces.Services;
 using SocialLibrary.Domain.Entities;
+using SocialLibrary.Domain.Enums;
 
 namespace SocialLibrary.Infrastructure.Services;
 
 public class LibraryService : ILibraryService
 {
     private readonly ILibraryRepository _library;
+    private readonly IActivityRepository _activities;
     private readonly IUnitOfWork _uow;
     private readonly IMapper _mapper;
 
     public LibraryService(
         ILibraryRepository library,
+        IActivityRepository activities,
         IUnitOfWork uow,
         IMapper mapper)
     {
         _library = library;
+        _activities = activities;
         _uow = uow;
         _mapper = mapper;
     }
@@ -48,6 +52,17 @@ public class LibraryService : ILibraryService
 
         var entity = _mapper.Map<LibraryEntry>(dto);
         await _library.AddAsync(entity);
+        await _uow.SaveChangesAsync(); // Save to get entity.Id
+
+        // Create activity for library update
+        var activity = new Activity
+        {
+            UserId = dto.UserId,
+            ActivityType = ActivityType.LibraryUpdate,
+            ContentId = dto.ContentId,
+            RelatedId = entity.Id
+        };
+        await _activities.AddAsync(activity);
         await _uow.SaveChangesAsync();
 
         return _mapper.Map<LibraryEntryDto>(entity);

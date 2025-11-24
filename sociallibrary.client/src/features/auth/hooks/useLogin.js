@@ -25,6 +25,7 @@ export const useLogin = () => {
         email: data.email,
       });
       setError(null);
+      // Login başarılı - ana sayfaya yönlendir
       navigate('/');
     },
     onError: (error) => {

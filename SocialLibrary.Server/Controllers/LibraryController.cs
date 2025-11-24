@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SocialLibrary.Application.DTOs.Library;
 using SocialLibrary.Application.Interfaces.Services;
 
@@ -6,6 +7,7 @@ namespace SocialLibrary.Server.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class LibraryController : ControllerBase
 {
     private readonly ILibraryService _service;

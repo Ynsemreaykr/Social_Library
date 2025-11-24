@@ -16,6 +16,8 @@ const RegisterForm = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    bio: '',
+    avatarUrl: '',
   });
   const [validationErrors, setValidationErrors] = useState({});
 
@@ -88,6 +90,8 @@ const RegisterForm = () => {
         username: formData.username,
         email: formData.email,
         password: formData.password,
+        bio: formData.bio || null,
+        avatarUrl: formData.avatarUrl || null,
       });
     }
   };
@@ -174,6 +178,37 @@ const RegisterForm = () => {
               <Form.Control.Feedback type="invalid">
                 {validationErrors.confirmPassword}
               </Form.Control.Feedback>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Biyografi (Opsiyonel)</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                name="bio"
+                value={formData.bio}
+                onChange={handleChange}
+                placeholder="Kendiniz hakkında kısa bir bilgi yazın..."
+                disabled={isLoading}
+              />
+              <Form.Text className="text-muted">
+                Profilinizde görünecek kısa bir açıklama
+              </Form.Text>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Profil Fotoğrafı URL (Opsiyonel)</Form.Label>
+              <Form.Control
+                type="url"
+                name="avatarUrl"
+                value={formData.avatarUrl}
+                onChange={handleChange}
+                placeholder="https://example.com/avatar.jpg"
+                disabled={isLoading}
+              />
+              <Form.Text className="text-muted">
+                Profil fotoğrafınızın URL adresini girin
+              </Form.Text>
             </Form.Group>
 
             <div className="d-grid mb-3">

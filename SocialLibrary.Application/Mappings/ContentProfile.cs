@@ -8,11 +8,24 @@ public class ContentProfile : Profile
 {
     public ContentProfile()
     {
-        CreateMap<Content, ContentDto>();
+        // Content → ContentDto mapping
+        // Record'lar için ConstructUsing kullan (positional parameters)
+        CreateMap<Content, ContentDto>()
+            .ConstructUsing(src => new ContentDto(
+                src.Id,
+                src.Title,
+                null, // Description yok, null
+                src.PosterUrl, // PosterUrl → CoverUrl
+                src.Year
+            ));
 
-        CreateMap<CreateContentRequestDto, Content>();
+        CreateMap<CreateContentRequestDto, Content>()
+            .ForMember(dest => dest.PosterUrl, opt => opt.MapFrom(src => src.CoverUrl)) // CoverUrl → PosterUrl
+            .ForMember(dest => dest.ExternalId, opt => opt.Ignore()) // ExternalId set edilmeyecek
+            .ForMember(dest => dest.ContentType, opt => opt.Ignore()); // ContentType set edilmeyecek
 
         CreateMap<UpdateContentRequestDto, Content>()
+            .ForMember(dest => dest.PosterUrl, opt => opt.MapFrom(src => src.CoverUrl)) // CoverUrl → PosterUrl
             .ForAllMembers(opts => opts.Condition(
                 (src, dest, srcMember) => srcMember != null));
         // (null gelen alanları overwrite etme)

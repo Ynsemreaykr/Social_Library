@@ -1,12 +1,18 @@
-import { useState } from 'react';
-import { Container, Card, Badge, Nav, Tab, Button, Row, Col, Alert } from 'react-bootstrap';
+import { useState, useEffect } from 'react';
+import { Container, Card, Badge, Nav, Tab, Button, Row, Col, Alert, Spinner } from 'react-bootstrap';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import useCustomListsStore from '../../list/hooks/useCustomLists';
+import useLibraryStore from '../../library/hooks/useLibrary';
 import ContentCard from '../../content/components/ContentCard';
+import { getUserProfileById } from '../../../api/userApi';
+import { getUserLibrary } from '../../../api/libraryApi';
+import { getUserLists } from '../../../api/listApi';
+import { useAuth } from '../../../hooks/useAuth';
+import { getContentDetail } from '../../../api/contentApi';
 
 /**
  * User Profile Page (Kullanıcı Profili Sayfası) - Proje metni 2.1.5
- * Görsel arayüz - backend bağlantısı yok, mock data kullanılıyor
+ * Backend bağlantılı - veritabanından kullanıcı bilgilerini çeker
  * 
  * Proje metni gereksinimleri:
  * - Kullanıcının temel bilgileri (kullanıcı adı, avatar, biyografi)
@@ -16,44 +22,110 @@ import ContentCard from '../../content/components/ContentCard';
  * - Son Aktiviteler
  */
 
-// Mock user data - görsel test için
-const mockUser = {
-  userId: 1,
-  username: 'Test Kullanıcı',
-  email: 'test@example.com',
-  avatarUrl: null,
-  bio: 'Kitap ve film sever bir kullanıcı. Özellikle bilimkurgu ve fantastik türlere ilgiliyim.',
-  followersCount: 42,
-  followingCount: 38,
-  isOwnProfile: true, // Kendi profili mi kontrolü
-};
-
-const mockLibraryEntries = {
-  watched: [
-    { id: 1, title: 'The Matrix', type: 'Film', posterUrl: 'https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg' },
-    { id: 2, title: 'Dune', type: 'Film', posterUrl: 'https://image.tmdb.org/t/p/w500/d5NXSklXo0qyIYkgV94XAgMIckC.jpg' },
-  ],
-  toWatch: [
-    { id: 3, title: 'Interstellar', type: 'Film', posterUrl: 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg' },
-  ],
-  read: [
-    { id: 4, title: '1984 - George Orwell', type: 'Kitap', posterUrl: 'https://images-na.ssl-images-amazon.com/images/I/81StSOpmkjL.jpg' },
-  ],
-  toRead: [
-    { id: 5, title: 'The Lord of the Rings', type: 'Kitap', posterUrl: 'https://image.tmdb.org/t/p/w500/6oom5QYQ2yQTMJIbnvbkBL9cHo6.jpg' },
-  ],
-};
-
 const UserProfilePage = () => {
-  const { userId } = useParams();
+  const { userId: userIdParam } = useParams();
   const navigate = useNavigate();
   const customListsStore = useCustomListsStore();
-  const user = mockUser; // Şimdilik mock data
-  const libraryEntries = mockLibraryEntries;
-  const customLists = customListsStore.lists;
+  const libraryStore = useLibraryStore();
+  const { user: currentUser } = useAuth();
+  
+  const [user, setUser] = useState(null);
+  const [libraryEntries, setLibraryEntries] = useState({
+    watched: [],
+    toWatch: [],
+    read: [],
+    toRead: [],
+  });
+  const [customLists, setCustomLists] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // GEÇİCİ: Şimdilik her zaman kendi profili gibi göster
-  const isOwnProfile = true;
+  const userId = userIdParam ? parseInt(userIdParam) : null;
+  const isOwnProfile = currentUser && userId === currentUser.userId;
+
+  // Kullanıcı profil bilgilerini yükle
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!userId) {
+        setError('Kullanıcı ID bulunamadı');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Kullanıcı profil bilgilerini çek
+        const profile = await getUserProfileById(userId);
+        setUser({
+          userId: profile.id,
+          username: profile.username,
+          avatarUrl: profile.avatarUrl,
+          bio: profile.bio,
+          followersCount: profile.followersCount,
+          followingCount: profile.followingCount,
+        });
+
+        // Kütüphaneyi yükle
+        try {
+          await libraryStore.loadLibrary(userId);
+          const library = libraryStore.library;
+          setLibraryEntries({
+            watched: library.watched || [],
+            toWatch: library.toWatch || [],
+            read: library.read || [],
+            toRead: library.toRead || [],
+          });
+        } catch (err) {
+          console.error('Error loading library:', err);
+        }
+
+        // Listeleri yükle
+        try {
+          const lists = await getUserLists(userId);
+          setCustomLists(lists || []);
+        } catch (err) {
+          console.error('Error loading lists:', err);
+        }
+
+      } catch (err) {
+        console.error('Error loading profile:', err);
+        setError(err.response?.data?.error || 'Profil yüklenirken bir hata oluştu');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [userId]);
+
+  if (isLoading) {
+    return (
+      <Container>
+        <div className="text-center py-5">
+          <Spinner animation="border" role="status">
+            <span className="visually-hidden">Yükleniyor...</span>
+          </Spinner>
+          <p className="mt-2">Profil bilgileri yükleniyor...</p>
+        </div>
+      </Container>
+    );
+  }
+
+  if (error || !user) {
+    return (
+      <Container>
+        <Alert variant="danger" className="mt-3">
+          <Alert.Heading>Hata!</Alert.Heading>
+          <p>{error || 'Kullanıcı bulunamadı'}</p>
+          <Button variant="primary" onClick={() => navigate(-1)} className="mt-2">
+            Geri Dön
+          </Button>
+        </Alert>
+      </Container>
+    );
+  }
 
   return (
     <Container>
@@ -106,11 +178,11 @@ const UserProfilePage = () => {
                   <span className="text-muted ms-1">İçerik</span>
                 </div>
                 <div>
-                  <strong>{mockUser.followersCount}</strong>
+                  <strong>{user.followersCount}</strong>
                   <span className="text-muted ms-1">Takipçi</span>
                 </div>
                 <div>
-                  <strong>{mockUser.followingCount}</strong>
+                  <strong>{user.followingCount}</strong>
                   <span className="text-muted ms-1">Takip Edilen</span>
                 </div>
               </div>
@@ -149,14 +221,11 @@ const UserProfilePage = () => {
         </Card.Body>
       </Card>
 
-      {/* Kütüphane ve Listeler - Tab Yapısı */}
+      {/* Özel Listeler ve Aktiviteler - Tab Yapısı */}
       <Card className="shadow-sm">
         <Card.Body>
-          <Tab.Container defaultActiveKey="library">
+          <Tab.Container defaultActiveKey="lists">
             <Nav variant="tabs" className="mb-3">
-              <Nav.Item>
-                <Nav.Link eventKey="library">Kütüphanem</Nav.Link>
-              </Nav.Item>
               <Nav.Item>
                 <Nav.Link eventKey="lists">Özel Listeler</Nav.Link>
               </Nav.Item>
@@ -166,60 +235,6 @@ const UserProfilePage = () => {
             </Nav>
 
             <Tab.Content>
-              {/* Kütüphane Sekmesi */}
-              <Tab.Pane eventKey="library">
-                <Tab.Container defaultActiveKey="all">
-                  <Nav variant="pills" className="mb-3">
-                    <Nav.Item>
-                      <Nav.Link eventKey="all">Tümü</Nav.Link>
-                    </Nav.Item>
-                    <Nav.Item>
-                      <Nav.Link eventKey="watched">İzlediklerim</Nav.Link>
-                    </Nav.Item>
-                    <Nav.Item>
-                      <Nav.Link eventKey="toWatch">İzlenecekler</Nav.Link>
-                    </Nav.Item>
-                    <Nav.Item>
-                      <Nav.Link eventKey="read">Okuduklarım</Nav.Link>
-                    </Nav.Item>
-                    <Nav.Item>
-                      <Nav.Link eventKey="toRead">Okunacaklar</Nav.Link>
-                    </Nav.Item>
-                  </Nav>
-
-                  <Tab.Content>
-                    <Tab.Pane eventKey="all">
-                      <div className="row g-3">
-                        {[
-                          ...libraryEntries.watched,
-                          ...libraryEntries.toWatch,
-                          ...libraryEntries.read,
-                          ...libraryEntries.toRead,
-                        ].map((item) => (
-                          <div key={item.id} className="col-md-2 col-sm-4 col-6">
-                            <div className="text-center">
-                              <img
-                                src={item.posterUrl}
-                                alt={item.title}
-                                style={{
-                                  width: '100%',
-                                  height: 'auto',
-                                  borderRadius: '8px',
-                                  marginBottom: '8px',
-                                }}
-                              />
-                              <small className="d-block text-truncate">{item.title}</small>
-                              <Badge bg="secondary" className="mt-1">{item.type}</Badge>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </Tab.Pane>
-                    {/* Diğer tab panelleri eklenebilir */}
-                  </Tab.Content>
-                </Tab.Container>
-              </Tab.Pane>
-
               {/* Özel Listeler Sekmesi */}
               <Tab.Pane eventKey="lists">
                 {isOwnProfile && (

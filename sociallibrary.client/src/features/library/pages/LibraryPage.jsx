@@ -1,20 +1,60 @@
-import { Container, Card, Tab, Nav, Row, Col, Alert } from 'react-bootstrap';
+import { useEffect } from 'react';
+import { Container, Card, Tab, Nav, Row, Col, Alert, Spinner } from 'react-bootstrap';
 import ContentCard from '../../content/components/ContentCard';
 import useLibraryStore from '../hooks/useLibrary';
+import { authStore } from '../../auth/store/authStore';
 
 /**
  * Library Page (Kütüphanem Sayfası) - Proje metni 2.1.5
  * Kullanıcının kütüphanesini gösterir: İzlediklerim, İzlenecekler, Okuduklarım, Okunacaklar
- * localStorage'dan veri çekiliyor, backend bağlantısı eklenecek
+ * Backend API'den veri çekiliyor
  */
 const LibraryPage = () => {
   const libraryStore = useLibraryStore();
-  const libraryData = {
-    watched: libraryStore.watched,
-    toWatch: libraryStore.toWatch,
-    read: libraryStore.read,
-    toRead: libraryStore.toRead,
+  const user = authStore((state) => state.user);
+  
+  // Sayfa açıldığında kütüphaneyi yükle
+  useEffect(() => {
+    if (user?.userId) {
+      libraryStore.loadLibrary(user.userId).catch((error) => {
+        console.error('Kütüphane yüklenirken hata:', error);
+      });
+    }
+  }, [user?.userId]);
+
+  // Store'dan library verilerini al (library objesi içinde)
+  const libraryData = libraryStore.library || {
+    watched: [],
+    toWatch: [],
+    read: [],
+    toRead: [],
   };
+
+  // Loading durumu
+  if (libraryStore.isLoading) {
+    return (
+      <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '50vh' }}>
+        <div className="text-center">
+          <Spinner animation="border" role="status" className="mb-3">
+            <span className="visually-hidden">Yükleniyor...</span>
+          </Spinner>
+          <p>Kütüphaneniz yükleniyor...</p>
+        </div>
+      </Container>
+    );
+  }
+
+  // Hata durumu
+  if (libraryStore.error) {
+    return (
+      <Container>
+        <Alert variant="danger">
+          <Alert.Heading>Hata!</Alert.Heading>
+          <p>Kütüphaneniz yüklenirken bir hata oluştu: {libraryStore.error}</p>
+        </Alert>
+      </Container>
+    );
+  }
 
   return (
     <Container>

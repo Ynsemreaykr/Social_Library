@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import MainLayout from '../components/layout/MainLayout';
 import ProtectedRoute from './ProtectedRoute';
 import LoginPage from '../features/auth/pages/LoginPage';
@@ -12,6 +13,7 @@ import LibraryPage from '../features/library/pages/LibraryPage';
 import EditProfilePage from '../features/user/pages/EditProfilePage';
 import SettingsPage from '../features/settings/pages/SettingsPage';
 import CreateListPage from '../features/list/pages/CreateListPage';
+import { useAuth } from '../hooks/useAuth';
 
 /**
  * App Router
@@ -27,6 +29,22 @@ import CreateListPage from '../features/list/pages/CreateListPage';
  * - /content/:id - public content detail
  * - /users/:id - public user profile
  */
+
+// Login/Register sayfalarında giriş yapmış kullanıcıyı ana sayfaya yönlendir
+const AuthRouteGuard = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Eğer giriş yapmışsa ve login/register sayfasındaysa, ana sayfaya yönlendir
+    if (isAuthenticated && (location.pathname === '/login' || location.pathname === '/register')) {
+      window.location.href = '/';
+    }
+  }, [isAuthenticated, location.pathname]);
+
+  return children;
+};
+
 const AppRouter = () => {
   return (
     <BrowserRouter>
@@ -35,17 +53,21 @@ const AppRouter = () => {
         <Route
           path="/login"
           element={
-            <MainLayout>
-              <LoginPage />
-            </MainLayout>
+            <AuthRouteGuard>
+              <MainLayout>
+                <LoginPage />
+              </MainLayout>
+            </AuthRouteGuard>
           }
         />
         <Route
           path="/register"
           element={
-            <MainLayout>
-              <RegisterPage />
-            </MainLayout>
+            <AuthRouteGuard>
+              <MainLayout>
+                <RegisterPage />
+              </MainLayout>
+            </AuthRouteGuard>
           }
         />
         <Route
@@ -58,12 +80,15 @@ const AppRouter = () => {
         />
 
         {/* Public routes - main layout */}
+        {/* Ana sayfa - giriş yapmamışsa login'e yönlendir */}
         <Route
           path="/"
           element={
-            <MainLayout>
-              <FeedPage />
-            </MainLayout>
+            <ProtectedRoute>
+              <MainLayout>
+                <FeedPage />
+              </MainLayout>
+            </ProtectedRoute>
           }
         />
         <Route
@@ -139,7 +164,7 @@ const AppRouter = () => {
           }
         />
 
-        {/* Catch all - redirect to home */}
+        {/* Catch all - redirect to home (which will redirect to login if not authenticated) */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

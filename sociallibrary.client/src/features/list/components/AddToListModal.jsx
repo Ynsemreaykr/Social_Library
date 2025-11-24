@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal, Button, Form, Alert, ListGroup } from 'react-bootstrap';
 import useCustomListsStore from '../hooks/useCustomLists';
 
@@ -6,39 +6,86 @@ import useCustomListsStore from '../hooks/useCustomLists';
  * Add to List Modal Component
  * İçeriği özel listeye ekleme modal'ı
  */
-const AddToListModal = ({ show, onHide, contentItem }) => {
+const AddToListModal = ({ show, onHide, contentItem, backendContentId }) => {
   const customListsStore = useCustomListsStore();
   const [newListName, setNewListName] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Modal açıldığında listeleri yükle
+  useEffect(() => {
+    if (show) {
+      customListsStore.loadLists().catch(err => {
+        console.error('Error loading lists:', err);
+      });
+    }
+  }, [show]);
 
   // İçeriğin hangi listelerde olduğunu kontrol et
   const listsContainingItem = customListsStore.getListsContainingItem(contentItem);
 
-  const handleToggleList = (listId) => {
-    if (listsContainingItem.includes(listId)) {
-      // Listeden kaldır
-      customListsStore.removeItemFromList(listId, contentItem);
-    } else {
-      // Listeye ekle
-      customListsStore.addItemToList(listId, contentItem);
+  const handleToggleList = async (listId) => {
+    if (!backendContentId) {
+      setError('İçerik bilgileri yükleniyor, lütfen bekleyin...');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      if (listsContainingItem.includes(listId)) {
+        // Listeden kaldır
+        await customListsStore.removeItemFromList(listId, { id: backendContentId || contentItem.id });
+      } else {
+        // Listeye ekle - backendContentId kullan
+        await customListsStore.addItemToList(listId, { 
+          id: backendContentId || contentItem.id, 
+          ...contentItem 
+        });
+      }
+    } catch (error) {
+      setError(error.message || 'Bir hata oluştu.');
+      console.error('Error toggling list item:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleCreateList = (e) => {
+  const handleCreateList = async (e) => {
     e.preventDefault();
     if (!newListName.trim()) {
       setError('Liste adı boş olamaz.');
       return;
     }
 
-    const newList = customListsStore.createList(newListName.trim());
-    // Yeni listeye içeriği ekle
-    customListsStore.addItemToList(newList.id, contentItem);
-    
-    setNewListName('');
-    setShowCreateForm(false);
-    setError(null);
+    if (!backendContentId) {
+      setError('İçerik bilgileri yükleniyor, lütfen bekleyin...');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Yeni liste oluştur
+      const newList = await customListsStore.createList(newListName.trim());
+      // Yeni listeye içeriği ekle - backendContentId kullan
+      await customListsStore.addItemToList(newList.id, { 
+        id: backendContentId || contentItem.id, 
+        ...contentItem 
+      });
+      
+      setNewListName('');
+      setShowCreateForm(false);
+      setError(null);
+    } catch (error) {
+      setError(error.message || 'Liste oluşturulurken bir hata oluştu.');
+      console.error('Error creating list:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleClose = () => {
@@ -99,8 +146,8 @@ const AddToListModal = ({ show, onHide, contentItem }) => {
               />
             </Form.Group>
             <div className="d-flex gap-2">
-              <Button variant="primary" type="submit" size="sm">
-                Oluştur ve Ekle
+              <Button variant="primary" type="submit" size="sm" disabled={isLoading}>
+                {isLoading ? 'İşleniyor...' : 'Oluştur ve Ekle'}
               </Button>
               <Button
                 variant="outline-secondary"

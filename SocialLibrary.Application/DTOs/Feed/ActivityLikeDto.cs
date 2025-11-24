@@ -1,5 +1,9 @@
 ﻿namespace SocialLibrary.Application.DTOs.Feed;
 
 public record ActivityLikeDto(
-    string Username
+    int Id,
+    int UserId,
+    string Username,
+    string? AvatarUrl,
+    DateTime CreatedAt
 );

@@ -11,13 +11,13 @@ public class ContentRepository : GenericRepository<Content>, IContentRepository
 {
     public ContentRepository(SocialLibraryDbContext context) : base(context) { }
 
-    public async Task<Content?> GetByIdAsync(int id)
+    public new async Task<Content?> GetByIdAsync(int id)
         => await _dbSet.FirstOrDefaultAsync(x => x.Id == id);
 
     public async Task<Content?> GetByExternalIdAsync(string externalId, ContentType type)
         => await _dbSet.FirstOrDefaultAsync(x => x.ExternalId == externalId && x.ContentType == type);
 
-    public async Task AddAsync(Content content)
+    public new async Task AddAsync(Content content)
         => await base.AddAsync(content);
 
     public async Task<IEnumerable<Content>> SearchAsync(string keyword)

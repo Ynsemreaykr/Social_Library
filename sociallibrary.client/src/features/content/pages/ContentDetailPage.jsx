@@ -8,6 +8,9 @@ import ReviewModal from '../components/ReviewModal';
 import AddToListModal from '../../list/components/AddToListModal';
 import useLibraryStore from '../../library/hooks/useLibrary';
 import useRatingsStore from '../../ratings/hooks/useRatings';
+import { getOrCreateByExternalId, getContentDetail } from '../../../api/contentApi';
+import { getContentReviews } from '../../../api/reviewApi';
+import { authStore } from '../../auth/store/authStore';
 
 /**
  * Content Detail Page (İçerik Detay Sayfası) - Proje metni 2.1.4
@@ -21,6 +24,10 @@ const ContentDetailPage = () => {
   const [showRateModal, setShowRateModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showAddToListModal, setShowAddToListModal] = useState(false);
+  const [backendContentId, setBackendContentId] = useState(null);
+  const [platformRating, setPlatformRating] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [loadingBackend, setLoadingBackend] = useState(false);
   const libraryStore = useLibraryStore();
   const ratingsStore = useRatingsStore();
 
@@ -52,22 +59,96 @@ const ContentDetailPage = () => {
     _type: isMovie ? 'movie' : 'book',
   } : null;
 
-  // Kullanıcının daha önce verdiği puan/yorumu kontrol et
-  const userRating = contentItem ? ratingsStore.getUserRating(contentItem.id, contentItem._type) : null;
-  const userReview = contentItem ? ratingsStore.getUserReview(contentItem.id, contentItem._type) : null;
+  // Backend Content ID'yi al ve platform bilgilerini yükle
+  useEffect(() => {
+    const loadBackendData = async () => {
+      if (!data || !decodedId) return;
+      
+      try {
+        setLoadingBackend(true);
+        // Backend'de Content'i oluştur veya bul
+        const externalId = decodedId.toString();
+        const contentType = isMovie ? 'Movie' : 'Book';
+        const title = data.title || data.volumeInfo?.title;
+        const year = isMovie 
+          ? (data.releaseYear || (data.release_date ? new Date(data.release_date).getFullYear() : null))
+          : (data.publishedYear || (data.volumeInfo?.publishedDate ? new Date(data.volumeInfo.publishedDate).getFullYear() : null));
+        const posterUrl = isMovie 
+          ? (data.posterUrl || (data.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : null))
+          : (data.thumbnailUrl || data.volumeInfo?.imageLinks?.thumbnail);
+        
+        const content = await getOrCreateByExternalId(
+          externalId,
+          contentType,
+          title,
+          year,
+          posterUrl,
+          JSON.stringify(data)
+        );
+        
+        setBackendContentId(content.id);
+        
+        // Platform puanını ve yorumları yükle
+        try {
+          const detail = await getContentDetail(content.id);
+          if (detail.averageRating !== undefined) {
+            setPlatformRating(detail.averageRating);
+          }
+        } catch (err) {
+          console.error('Error loading content detail:', err);
+        }
+        
+        // Yorumları yükle
+        try {
+          const reviewsData = await getContentReviews(content.id);
+          setReviews(reviewsData || []);
+        } catch (err) {
+          console.error('Error loading reviews:', err);
+        }
+      } catch (error) {
+        console.error('Error loading backend data:', error);
+      } finally {
+        setLoadingBackend(false);
+      }
+    };
+    
+    loadBackendData();
+  }, [data, decodedId, isMovie]);
+
+  // Kullanıcının puan/yorumunu backend'den yükle
+  useEffect(() => {
+    const backendId = backendContentId || contentItem?.id;
+    if (backendId && authStore.getState().token) {
+      // Backend'den kullanıcının puanını yükle
+      ratingsStore.loadUserRating(backendId).catch(err => {
+        console.error('Error loading user rating:', err);
+      });
+      
+      // Backend'den kullanıcının yorumunu yükle
+      ratingsStore.loadUserReview(backendId).catch(err => {
+        console.error('Error loading user review:', err);
+      });
+    }
+  }, [backendContentId, contentItem?.id, authStore.getState().token]);
+
+  // Kullanıcının puan/yorumunu cache'den al (backend ID kullan)
+  const backendId = backendContentId || contentItem?.id;
+  const userRating = backendId ? ratingsStore.getUserRating(backendId, contentItem?._type) : null;
+  const userReview = backendId ? ratingsStore.getUserReview(backendId, contentItem?._type) : null;
 
   const isWatched = isMovie && contentItem ? libraryStore.isInLibrary(contentItem, 'watched') : false;
   const isToWatch = isMovie && contentItem ? libraryStore.isInLibrary(contentItem, 'toWatch') : false;
   const isRead = !isMovie && contentItem ? libraryStore.isInLibrary(contentItem, 'read') : false;
   const isToRead = !isMovie && contentItem ? libraryStore.isInLibrary(contentItem, 'toRead') : false;
 
-  if (isLoading) {
+  if (isLoading || loadingBackend) {
     return (
       <Container>
         <div className="text-center py-5">
           <Spinner animation="border" role="status">
             <span className="visually-hidden">Yükleniyor...</span>
           </Spinner>
+          <p className="mt-2">İçerik bilgileri yükleniyor...</p>
         </div>
       </Container>
     );
@@ -112,7 +193,7 @@ const ContentDetailPage = () => {
     );
   }
 
-  if (!data && !isLoading) {
+  if (!data && !isLoading && !loadingBackend) {
     return (
       <Container>
         <Alert variant="info">
@@ -122,6 +203,20 @@ const ContentDetailPage = () => {
             Geri Dön
           </Button>
         </Alert>
+      </Container>
+    );
+  }
+
+  // data yoksa ama hala yükleniyorsa loading göster
+  if (!data) {
+    return (
+      <Container>
+        <div className="text-center py-5">
+          <Spinner animation="border" role="status">
+            <span className="visually-hidden">Yükleniyor...</span>
+          </Spinner>
+          <p className="mt-2">İçerik bilgileri yükleniyor...</p>
+        </div>
       </Container>
     );
   }
@@ -165,11 +260,19 @@ const ContentDetailPage = () => {
                   ))}
                 </div>
 
+                {/* Platform Puanı - Backend'den */}
+                {platformRating !== null && (
+                  <div className="mb-3">
+                    <Badge bg={platformRating >= 7 ? 'success' : platformRating >= 5 ? 'warning' : 'secondary'} style={{ fontSize: '1rem', padding: '0.5rem 1rem' }}>
+                      ⭐ Platform Puanı: {platformRating.toFixed(1)}/10
+                    </Badge>
+                  </div>
+                )}
+                {/* TMDb Puanı (opsiyonel) */}
                 {data.rating && (
                   <div className="mb-3">
-                    <Badge bg={data.rating >= 7 ? 'success' : data.rating >= 5 ? 'warning' : 'secondary'} style={{ fontSize: '1rem', padding: '0.5rem 1rem' }}>
-                      ⭐ {data.rating.toFixed(1)}/10
-                      {data.ratingCount && <span className="ms-2">({data.ratingCount} değerlendirme)</span>}
+                    <Badge bg="info" style={{ fontSize: '0.9rem', padding: '0.4rem 0.8rem' }}>
+                      TMDb: {data.rating.toFixed(1)}/10
                     </Badge>
                   </div>
                 )}
@@ -215,16 +318,24 @@ const ContentDetailPage = () => {
                 )}
 
                 <div className="mt-4">
+                  {loadingBackend && (
+                    <Alert variant="info" className="mb-3">
+                      <Spinner size="sm" className="me-2" />
+                      Backend verileri yükleniyor...
+                    </Alert>
+                  )}
                   <ButtonGroup className="me-2 mb-2">
                     <Button 
                       variant={userRating ? 'success' : 'primary'}
                       onClick={() => setShowRateModal(true)}
+                      disabled={!backendContentId || loadingBackend}
                     >
                       {userRating ? `⭐ Puanım: ${userRating}/10` : 'Puan Ver'}
                     </Button>
                     <Button 
                       variant={userReview ? 'success' : 'outline-primary'}
                       onClick={() => setShowReviewModal(true)}
+                      disabled={!backendContentId || loadingBackend}
                     >
                       {userReview ? '💬 Yorumumu Gör' : 'Yorum Yap'}
                     </Button>
@@ -233,10 +344,14 @@ const ContentDetailPage = () => {
                     {!isWatched && !isToWatch && (
                       <Button 
                         variant="success"
-                        onClick={() => {
+                        onClick={async () => {
                           if (contentItem) {
-                            libraryStore.addWatched(contentItem);
-                            alert(`${data.title} izlediklerinize eklendi!`);
+                            try {
+                              await libraryStore.addWatched(contentItem);
+                              alert(`${data.title} izlediklerinize eklendi!`);
+                            } catch (error) {
+                              alert('Hata: ' + error.message);
+                            }
                           }
                         }}
                       >
@@ -246,10 +361,14 @@ const ContentDetailPage = () => {
                     {!isToWatch && !isWatched && (
                       <Button 
                         variant="outline-success"
-                        onClick={() => {
+                        onClick={async () => {
                           if (contentItem) {
-                            libraryStore.addToWatch(contentItem);
-                            alert(`${data.title} izleneceklerinize eklendi!`);
+                            try {
+                              await libraryStore.addToWatch(contentItem);
+                              alert(`${data.title} izleneceklerinize eklendi!`);
+                            } catch (error) {
+                              alert('Hata: ' + error.message);
+                            }
                           }
                         }}
                       >
@@ -372,10 +491,14 @@ const ContentDetailPage = () => {
                     {!isRead && !isToRead && (
                       <Button 
                         variant="success"
-                        onClick={() => {
+                        onClick={async () => {
                           if (contentItem) {
-                            libraryStore.addRead(contentItem);
-                            alert(`${data.title} okuduklarınıza eklendi!`);
+                            try {
+                              await libraryStore.addRead(contentItem);
+                              alert(`${data.title} okuduklarınıza eklendi!`);
+                            } catch (error) {
+                              alert('Hata: ' + error.message);
+                            }
                           }
                         }}
                       >
@@ -385,10 +508,14 @@ const ContentDetailPage = () => {
                     {!isToRead && !isRead && (
                       <Button 
                         variant="outline-success"
-                        onClick={() => {
+                        onClick={async () => {
                           if (contentItem) {
-                            libraryStore.addToRead(contentItem);
-                            alert(`${data.title} okunacaklarınıza eklendi!`);
+                            try {
+                              await libraryStore.addToRead(contentItem);
+                              alert(`${data.title} okunacaklarınıza eklendi!`);
+                            } catch (error) {
+                              alert('Hata: ' + error.message);
+                            }
                           }
                         }}
                       >
@@ -439,22 +566,65 @@ const ContentDetailPage = () => {
             </Card>
           )}
 
-          {/* Diğer Kullanıcıların Yorumları - Backend entegrasyonu ile gelecek */}
-          {!userReview && (
+          {/* Diğer Kullanıcıların Yorumları - Backend'den */}
+          {loadingBackend ? (
+            <div className="text-center py-3">
+              <Spinner animation="border" size="sm" />
+              <span className="ms-2">Yorumlar yükleniyor...</span>
+            </div>
+          ) : reviews.length > 0 ? (
+            <div>
+              {reviews.map((review) => (
+                <Card key={review.id} className="mb-3">
+                  <Card.Body>
+                    <div className="d-flex align-items-start mb-2">
+                      {review.avatarUrl ? (
+                        <img
+                          src={review.avatarUrl}
+                          alt={review.username}
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            marginRight: '10px',
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            backgroundColor: '#dee2e6',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginRight: '10px',
+                          }}
+                        >
+                          👤
+                        </div>
+                      )}
+                      <div className="flex-grow-1">
+                        <strong>{review.username}</strong>
+                        <small className="text-muted ms-2">
+                          {new Date(review.createdAt).toLocaleDateString('tr-TR')}
+                        </small>
+                        <p className="mb-0 mt-2">{review.text}</p>
+                      </div>
+                    </div>
+                  </Card.Body>
+                </Card>
+              ))}
+            </div>
+          ) : !userReview ? (
             <Alert variant="info">
               <Alert.Heading>Henüz yorum yok</Alert.Heading>
               <p className="mb-0">
                 Bu içerik için henüz yorum yapılmamış. İlk yorumu siz yapabilirsiniz!
               </p>
             </Alert>
-          )}
-
-          {/* Not: Diğer kullanıcıların yorumları backend entegrasyonu ile eklenecek */}
-          <div className="mt-3">
-            <small className="text-muted">
-              💡 Diğer kullanıcıların yorumları backend entegrasyonu ile eklenecektir.
-            </small>
-          </div>
+          ) : null}
         </Card.Body>
       </Card>
 
@@ -464,12 +634,19 @@ const ContentDetailPage = () => {
           <RateModal
             show={showRateModal}
             onHide={() => setShowRateModal(false)}
-            onSubmit={(rating) => {
-              if (contentItem) {
-                ratingsStore.addRating(contentItem.id, contentItem._type, rating);
-                alert(`${data.title} için ${rating} puan verdiniz!`);
-                // Sayfayı yenile (puanı göstermek için)
-                window.location.reload();
+            onSubmit={async (rating) => {
+              if (contentItem && backendContentId) {
+                try {
+                  await ratingsStore.addRating(backendContentId, contentItem._type, rating);
+                  alert(`${data.title} için ${rating} puan verdiniz!`);
+                  // Platform puanını yeniden yükle
+                  if (backendContentId) {
+                    const detail = await getContentDetail(backendContentId);
+                    setPlatformRating(detail.averageRating);
+                  }
+                } catch (error) {
+                  alert('Puan verilirken bir hata oluştu: ' + error.message);
+                }
               }
             }}
             contentTitle={data.title}
@@ -480,12 +657,22 @@ const ContentDetailPage = () => {
           <ReviewModal
             show={showReviewModal}
             onHide={() => setShowReviewModal(false)}
-            onSubmit={(review) => {
-              if (contentItem) {
-                ratingsStore.addReview(contentItem.id, contentItem._type, review);
+            onSubmit={async (review) => {
+              if (!backendContentId) {
+                alert('İçerik henüz yükleniyor, lütfen bekleyin...');
+                return;
+              }
+              try {
+                await ratingsStore.addReview(backendContentId, contentItem?._type || 'movie', review);
                 alert(`${data.title} için yorumunuz kaydedildi!`);
-                // Sayfayı yenile (yorumu göstermek için)
-                window.location.reload();
+                // Yorumları yeniden yükle
+                const reviewsData = await getContentReviews(backendContentId);
+                setReviews(reviewsData || []);
+                // Kullanıcı yorumunu yeniden yükle
+                await ratingsStore.loadUserReview(backendContentId);
+              } catch (error) {
+                console.error('Review error:', error);
+                alert('Yorum kaydedilirken bir hata oluştu: ' + (error.response?.data?.error || error.message));
               }
             }}
             contentTitle={data.title}

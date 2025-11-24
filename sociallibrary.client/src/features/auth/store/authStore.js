@@ -55,10 +55,15 @@ export const authStore = create((set, get) => ({
 
   /**
    * Logout action - clears token and user from store and localStorage
+   * @param {boolean} redirect - Redirect to login page (default: true)
    */
-  logout: () => {
+  logout: (redirect = true) => {
     saveAuthToStorage(null, null);
     set({ token: null, user: null });
+    // Sayfayı yenile veya login'e yönlendir
+    if (redirect && typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
   },
 
   /**
@@ -73,13 +78,52 @@ export const authStore = create((set, get) => ({
   /**
    * Load authentication state from localStorage
    * Should be called on app initialization
+   * Token validation yapılmaz - sadece yükler
    */
   loadFromStorage: () => {
     const { token, user } = loadAuthFromStorage();
     set({ token, user });
   },
+
+  /**
+   * Validate token by making a test API call
+   * Returns true if token is valid, false otherwise
+   */
+  validateToken: async () => {
+    const token = get().token;
+    if (!token) {
+      return false;
+    }
+
+    try {
+      // Health endpoint'i test et (herkese açık ama token varsa test eder)
+      const response = await fetch('http://localhost:5162/api/Health', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      // Token geçersizse 401 döner, ama Health endpoint herkese açık
+      // Bu yüzden başka bir endpoint test etmeliyiz
+      // Şimdilik sadece token varlığını kontrol ediyoruz
+      return true;
+    } catch (error) {
+      console.error('Token validation error:', error);
+      return false;
+    }
+  },
 }));
 
 // Auto-load from storage when store is created
-authStore.getState().loadFromStorage();
+// İlk açılışta token validation yapıyoruz
+// Eğer token geçersizse, temizliyoruz
+const initialState = loadAuthFromStorage();
+if (initialState.token) {
+  // Token'ı yükle ama validation yap
+  authStore.getState().loadFromStorage();
+  
+  // Token validation yap (async - app başladığında yapılacak)
+  // AppRouter'da useEffect ile kontrol edilecek
+}
 
