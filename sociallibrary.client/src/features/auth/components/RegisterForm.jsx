@@ -14,8 +14,6 @@ const RegisterForm = () => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
-    password: '',
-    confirmPassword: '',
     bio: '',
     avatarUrl: '',
   });
@@ -62,18 +60,6 @@ const RegisterForm = () => {
       errors.email = 'Geçerli bir e-posta adresi girin';
     }
 
-    if (!formData.password) {
-      errors.password = 'Şifre gereklidir';
-    } else if (formData.password.length < 6) {
-      errors.password = 'Şifre en az 6 karakter olmalıdır';
-    }
-
-    if (!formData.confirmPassword) {
-      errors.confirmPassword = 'Şifre tekrarı gereklidir';
-    } else if (formData.password !== formData.confirmPassword) {
-      errors.confirmPassword = 'Şifreler eşleşmiyor';
-    }
-
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -89,7 +75,6 @@ const RegisterForm = () => {
       register({
         username: formData.username,
         email: formData.email,
-        password: formData.password,
         bio: formData.bio || null,
         avatarUrl: formData.avatarUrl || null,
       });
@@ -143,40 +128,6 @@ const RegisterForm = () => {
               />
               <Form.Control.Feedback type="invalid">
                 {validationErrors.email}
-              </Form.Control.Feedback>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Şifre</Form.Label>
-              <Form.Control
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                isInvalid={!!validationErrors.password}
-                placeholder="Şifrenizi girin (min. 6 karakter)"
-                required
-                disabled={isLoading}
-              />
-              <Form.Control.Feedback type="invalid">
-                {validationErrors.password}
-              </Form.Control.Feedback>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Şifre Tekrar</Form.Label>
-              <Form.Control
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                isInvalid={!!validationErrors.confirmPassword}
-                placeholder="Şifrenizi tekrar girin"
-                required
-                disabled={isLoading}
-              />
-              <Form.Control.Feedback type="invalid">
-                {validationErrors.confirmPassword}
               </Form.Control.Feedback>
             </Form.Group>
 

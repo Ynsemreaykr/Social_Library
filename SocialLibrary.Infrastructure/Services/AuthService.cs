@@ -13,17 +13,20 @@ public class AuthService : IAuthService
     private readonly IUnitOfWork _uow;
     private readonly IMapper _mapper;
     private readonly JwtTokenGenerator _jwt;
+    private readonly IEmailService _emailService;
 
     public AuthService(
         IUserRepository users,
         IUnitOfWork uow,
         IMapper mapper,
-        JwtTokenGenerator jwt)
+        JwtTokenGenerator jwt,
+        IEmailService emailService)
     {
         _users = users;
         _uow = uow;
         _mapper = mapper;
         _jwt = jwt;
+        _emailService = emailService;
     }
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto dto)
@@ -32,19 +35,26 @@ public class AuthService : IAuthService
         if (await _users.AnyAsync(dto.Email, dto.Username))
             throw new Exception("Email or username already taken.");
 
+        // Tek kullanımlık şifre oluştur (6 haneli rastgele sayı)
+        var random = new Random();
+        var oneTimePassword = random.Next(100000, 999999).ToString();
+
         var user = _mapper.Map<User>(dto);
-        user.PasswordHash = PasswordHasher.Hash(dto.Password);
+        user.PasswordHash = PasswordHasher.Hash(oneTimePassword);
 
         await _users.AddAsync(user);
         await _uow.SaveChangesAsync();
 
-        var token = _jwt.GenerateToken(user.Id, user.Username, user.Email);
+        // Tek kullanımlık şifreyi email'e gönder
+        await _emailService.SendOneTimePasswordAsync(user.Email, oneTimePassword);
 
+        // Kayıt başarılı - token döndürmüyoruz, sadece başarı mesajı
+        // Kullanıcı email'ine gönderilen şifre ile giriş yapacak
         return new AuthResponseDto(
             UserId: user.Id,
             Username: user.Username,
             Email: user.Email,
-            Token: token
+            Token: string.Empty // Token döndürmüyoruz, kullanıcı giriş yapmalı
         );
     }
 
@@ -58,6 +68,10 @@ public class AuthService : IAuthService
         if (user.PasswordHash != hash)
             throw new Exception("Invalid password.");
 
+        // Tek kullanımlık şifre ile giriş yapıldıysa, bu şifreyi kalıcı şifre olarak kaydet
+        // (Şifre zaten doğru, sadece veritabanında güncelleme yapmıyoruz çünkü hash aynı)
+        // Not: Tek kullanımlık şifre zaten hash'lenmiş olarak kaydedilmiş, bu yüzden ekstra bir işlem yapmıyoruz
+
         var token = _jwt.GenerateToken(user.Id, user.Username, user.Email);
 
         return new AuthResponseDto(
@@ -66,5 +80,24 @@ public class AuthService : IAuthService
             Email: user.Email,
             Token: token
         );
+    }
+
+    public async Task ForgotPasswordAsync(string email)
+    {
+        var user = await _users.GetByEmailAsync(email);
+        if (user == null)
+            throw new Exception("User not found.");
+
+        // Tek kullanımlık şifre oluştur (6 haneli rastgele sayı)
+        var random = new Random();
+        var oneTimePassword = random.Next(100000, 999999).ToString();
+
+        // Eski şifreyi sil ve yeni tek kullanımlık şifreyi kaydet
+        user.PasswordHash = PasswordHasher.Hash(oneTimePassword);
+        
+        await _uow.SaveChangesAsync();
+
+        // Tek kullanımlık şifreyi email'e gönder
+        await _emailService.SendOneTimePasswordAsync(user.Email, oneTimePassword);
     }
 }

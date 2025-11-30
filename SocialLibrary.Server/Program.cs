@@ -27,6 +27,9 @@ builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<JwtTokenGenerator>();
 
+// Email Service
+builder.Services.AddScoped<IEmailService, EmailService>();
+
 // Content Service
 builder.Services.AddScoped<IContentService, ContentService>();
 builder.Services.AddScoped<ILibraryService, LibraryService>();

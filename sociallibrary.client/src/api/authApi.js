@@ -23,18 +23,28 @@ export const login = async (email, password) => {
  * Register new user
  * @param {string} username - Username
  * @param {string} email - User email
- * @param {string} password - User password
  * @param {string|null} bio - User bio (optional)
  * @param {string|null} avatarUrl - User avatar URL (optional)
- * @returns {Promise} AuthResponse with token and user info
+ * @returns {Promise} Success response
  */
-export const register = async (username, email, password, bio = null, avatarUrl = null) => {
+export const register = async (username, email, bio = null, avatarUrl = null) => {
   const response = await axiosClient.post('/Auth/register', {
     username,
     email,
-    password,
     bio,
     avatarUrl,
+  });
+  return response.data;
+};
+
+/**
+ * Forgot password - Send one-time password to email
+ * @param {string} email - User email
+ * @returns {Promise} Success response
+ */
+export const forgotPassword = async (email) => {
+  const response = await axiosClient.post('/Auth/forgot-password', {
+    email,
   });
   return response.data;
 };

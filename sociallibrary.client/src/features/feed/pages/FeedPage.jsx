@@ -12,7 +12,9 @@ import ActivityCard from '../components/ActivityCard';
  * Backend bağlantısı eklendikten sonra gerçek aktiviteler gösterilecek
  */
 const FeedPage = () => {
-  const { isAuthenticated } = useAuth();
+  // GEÇİCİ: Auth kontrolü devre dışı - direkt kullanıcı ekranında olmak için
+  // const { isAuthenticated } = useAuth();
+  const isAuthenticated = true; // Geçici olarak her zaman authenticated
   
   // Popüler kitapları çek
   const { data: popularBooksData, isLoading: isLoadingBooks } = usePopularBooks(0, 5);

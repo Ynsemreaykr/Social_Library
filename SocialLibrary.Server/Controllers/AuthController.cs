@@ -44,4 +44,18 @@ public class AuthController : ControllerBase
             return Unauthorized(new { error = ex.Message });
         }
     }
+
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequestDto dto)
+    {
+        try
+        {
+            await _authService.ForgotPasswordAsync(dto.Email);
+            return Ok(new { message = "Tek kullanımlık şifre e-posta adresinize gönderildi." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
 }

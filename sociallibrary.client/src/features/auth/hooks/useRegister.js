@@ -13,20 +13,14 @@ export const useRegister = () => {
   const [error, setError] = useState(null);
 
   const mutation = useMutation({
-    mutationFn: ({ username, email, password, bio, avatarUrl }) =>
-      registerApi(username, email, password, bio, avatarUrl),
+    mutationFn: ({ username, email, bio, avatarUrl }) =>
+      registerApi(username, email, bio, avatarUrl),
     onSuccess: (data) => {
       // On successful registration:
-      // 1. Store token and user in auth store
-      // 2. Save to localStorage (handled in store)
-      // 3. Navigate to home page
-      authStore.getState().login(data.token, {
-        userId: data.userId,
-        username: data.username,
-        email: data.email,
-      });
+      // Kayıt başarılı - giriş sayfasına yönlendir
+      // Kullanıcıya eposta adresine gönderilen tek kullanımlık şifre ile giriş yapması gerektiği söylenecek
       setError(null);
-      navigate('/');
+      navigate('/login');
     },
     onError: (error) => {
       // Handle registration errors (e.g., email already exists)

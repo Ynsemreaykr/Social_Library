@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Form, Button, Alert, Container, Card } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import { forgotPassword } from '../../../api/authApi';
 
 /**
- * Forgot Password Page (Şifremi Unuttum) - Proje metni 2.1.1
- * Kullanıcının e-postasına sıfırlama linki gönderilmesi
- * Görsel arayüz - backend bağlantısı şimdilik yok
+ * Forgot Password Page (Şifremi Unuttum)
+ * Kullanıcının e-postasına tek kullanımlık şifre gönderilmesi
  */
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
@@ -14,7 +14,7 @@ const ForgotPasswordPage = () => {
   const [error, setError] = useState(null);
   const [validationError, setValidationError] = useState(null);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setValidationError(null);
@@ -30,15 +30,35 @@ const ForgotPasswordPage = () => {
       return;
     }
 
-    // Şimdilik sadece görsel - backend bağlantısı yok
     setIsLoading(true);
     
-    // Simüle edilmiş API çağrısı
-    setTimeout(() => {
+    try {
+      await forgotPassword(email);
       setIsLoading(false);
       setIsSubmitted(true);
-      console.log('Şifre sıfırlama isteği gönderildi:', email);
-    }, 1000);
+    } catch (err) {
+      setIsLoading(false);
+      let errorMessage = 'Tek kullanımlık şifre gönderilemedi. Lütfen tekrar deneyin.';
+      
+      if (err.response) {
+        const backendError = err.response.data;
+        if (typeof backendError === 'string') {
+          errorMessage = backendError;
+        } else if (backendError?.error) {
+          errorMessage = backendError.error;
+        } else if (backendError?.message) {
+          errorMessage = backendError.message;
+        }
+      } else if (err.message) {
+        if (err.message.includes('Network') || err.message.includes('timeout')) {
+          errorMessage = 'Backend\'e bağlanılamıyor. Lütfen backend\'in çalıştığından emin olun.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
+    }
   };
 
   if (isSubmitted) {
@@ -49,10 +69,10 @@ const ForgotPasswordPage = () => {
             <div className="mb-4" style={{ fontSize: '64px' }}>✉️</div>
             <Card.Title className="mb-3">E-posta Gönderildi</Card.Title>
             <p className="text-muted mb-4">
-              <strong>{email}</strong> adresine şifre sıfırlama linki gönderildi.
+              <strong>{email}</strong> adresine tek kullanımlık şifre gönderildi.
             </p>
             <p className="text-muted mb-4">
-              E-postanızı kontrol edin ve linke tıklayarak şifrenizi sıfırlayın.
+              E-postanızı kontrol edin ve gönderilen şifre ile giriş yapın.
             </p>
             <div className="d-grid gap-2">
               <Button variant="primary" as={Link} to="/login">
@@ -80,7 +100,7 @@ const ForgotPasswordPage = () => {
           )}
 
           <p className="text-muted text-center mb-4">
-            Şifrenizi sıfırlamak için e-posta adresinizi girin. Size şifre sıfırlama linki göndereceğiz.
+            Şifrenizi sıfırlamak için e-posta adresinizi girin. Size tek kullanımlık şifre göndereceğiz.
           </p>
 
           <Form onSubmit={handleSubmit}>
@@ -110,7 +130,7 @@ const ForgotPasswordPage = () => {
                 size="lg"
                 disabled={isLoading}
               >
-                {isLoading ? 'Gönderiliyor...' : 'Şifre Sıfırlama Linki Gönder'}
+                {isLoading ? 'Gönderiliyor...' : 'Tek Kullanımlık Şifre Gönder'}
               </Button>
             </div>
 

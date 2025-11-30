@@ -9,12 +9,23 @@ import { authStore } from '../../features/auth/store/authStore';
  * Shows "Login / Register" when logged out, user menu when logged in
  */
 const MainLayout = ({ children }) => {
-  const { isAuthenticated, user } = useAuth();
+  // GEÇİCİ: Auth kontrolü devre dışı - direkt kullanıcı ekranında olmak için
+  // const { isAuthenticated, user } = useAuth();
+  
+  // Mock kullanıcı bilgileri - direkt kullanıcı ekranında olmak için
+  const isAuthenticated = true; // Geçici olarak her zaman authenticated
+  const user = { 
+    userId: 1, 
+    username: 'Test Kullanıcı', 
+    email: 'test@example.com' 
+  };
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    authStore.getState().logout();
-    navigate('/login');
+    // GEÇİCİ: Logout devre dışı - direkt kullanıcı ekranında olmak için
+    // authStore.getState().logout();
+    // navigate('/login');
+    console.log('Logout (geçici olarak devre dışı)');
   };
 
   return (
