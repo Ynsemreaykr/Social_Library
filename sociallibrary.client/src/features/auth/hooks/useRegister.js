@@ -13,8 +13,8 @@ export const useRegister = () => {
   const [error, setError] = useState(null);
 
   const mutation = useMutation({
-    mutationFn: ({ username, email, bio, avatarUrl }) =>
-      registerApi(username, email, bio, avatarUrl),
+    mutationFn: ({ username, email, password, bio, avatarUrl }) =>
+      registerApi(username, email, password, bio, avatarUrl),
     onSuccess: (data) => {
       // On successful registration:
       // Kayıt başarılı - giriş sayfasına yönlendir
@@ -26,22 +26,39 @@ export const useRegister = () => {
       // Handle registration errors (e.g., email already exists)
       let errorMessage = 'Kayıt işlemi başarısız oldu. Lütfen tekrar deneyin.';
       
+      // Debug: Tüm error bilgisini logla
+      console.error('🔴 Register Error:', {
+        response: error.response,
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
+      
       if (error.response) {
         // Backend'den gelen hata
         const backendError = error.response.data;
+        const status = error.response.status;
         
         // Backend'den gelen mesajı parse et
         if (typeof backendError === 'string') {
           errorMessage = backendError;
+        } else if (backendError?.error) {
+          // Backend { error: "..." } formatında dönüyor (400 BadRequest)
+          const errorText = backendError.error;
+          if (errorText.includes('already taken') || errorText.includes('kullanımda') || errorText.includes('already exists')) {
+            errorMessage = 'Bu e-posta veya kullanıcı adı zaten kullanımda.';
+          } else {
+            errorMessage = errorText;
+          }
         } else if (backendError?.message) {
           errorMessage = backendError.message;
         } else if (backendError?.title) {
           errorMessage = backendError.title;
-        } else if (error.response.status === 500) {
-          // 500 hatası için backend'den gelen detay mesajını kontrol et
-          const detailMessage = backendError?.detail || backendError?.message;
+        } else if (status === 400 || status === 500) {
+          // 400 veya 500 hatası için backend'den gelen detay mesajını kontrol et
+          const detailMessage = backendError?.detail || backendError?.message || backendError?.error;
           if (detailMessage) {
-            if (detailMessage.includes('already taken') || detailMessage.includes('kullanımda')) {
+            if (detailMessage.includes('already taken') || detailMessage.includes('kullanımda') || detailMessage.includes('already exists')) {
               errorMessage = 'Bu e-posta veya kullanıcı adı zaten kullanımda.';
             } else {
               errorMessage = detailMessage;
@@ -57,6 +74,7 @@ export const useRegister = () => {
         }
       }
       
+      console.log('📝 Final Error Message:', errorMessage);
       setError(errorMessage);
     },
   });

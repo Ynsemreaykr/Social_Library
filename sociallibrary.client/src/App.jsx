@@ -4,6 +4,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import AppRouter from './routes/AppRouter';
 import { authStore } from './features/auth/store/authStore';
 import axiosClient from './api/axiosClient';
+import { clearAllAuth } from './utils/clearAuth';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 
@@ -24,29 +25,34 @@ const queryClient = new QueryClient({
  * İlk açılışta token validation yapar
  */
 function App() {
-  // İlk açılışta token validation yap
+  // İlk açılışta localStorage'ı kontrol et ve test kullanıcı varsa temizle
   useEffect(() => {
-    const token = authStore.getState().token;
-    if (token) {
-      // Token varsa, geçerli olup olmadığını kontrol et
-      // Basit bir API çağrısı yaparak token'ı test et
-      axiosClient.get('/Health')
-        .then(() => {
-          // Token geçerli - hiçbir şey yapma
-          console.log('Token gecerli');
-        })
-        .catch((error) => {
-          // Token gecersiz veya backend'e ulasilamiyor
-          if (error.response?.status === 401 || !error.response) {
-            console.log('Token gecersiz veya backend\'e ulasilamiyor - token temizleniyor');
-            // Token'i temizle (redirect yapma, sadece temizle)
-            authStore.getState().logout(false);
+    // Test kullanıcı kontrolü - eğer varsa temizle
+    const userStr = localStorage.getItem('auth_user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        if (user && user.username && (
+          user.username.toLowerCase().includes('test') ||
+          user.username === 'Test Kullanıcı' ||
+          user.username === 'testkullanıcı' ||
+          user.username === 'testuser'
+        )) {
+          console.log('🚀 Test kullanıcı bulundu, temizleniyor...');
+          localStorage.clear();
+          sessionStorage.clear();
+          authStore.getState().logout(false);
+          // Login sayfasına yönlendir
+          if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+            window.location.href = '/login';
           }
-        });
-    } else {
-      // Token yoksa, localStorage'ı temizle (eski veriler olabilir)
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
+          return;
+        }
+      } catch (e) {
+        // Parse hatası varsa temizle
+        console.error('localStorage parse hatası:', e);
+        localStorage.clear();
+      }
     }
   }, []);
 

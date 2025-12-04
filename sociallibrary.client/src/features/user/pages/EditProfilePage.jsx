@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Container, Card, Form, Button, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../hooks/useAuth';
 
 /**
  * Edit Profile Page (Profili Düzenle Sayfası)
@@ -9,12 +10,24 @@ import { useNavigate } from 'react-router-dom';
  */
 const EditProfilePage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [showSuccess, setShowSuccess] = useState(false);
   const [formData, setFormData] = useState({
-    username: 'Test Kullanıcı',
-    bio: 'Kitap ve film sever bir kullanıcı. Özellikle bilimkurgu ve fantastik türlere ilgiliyim.',
-    avatarUrl: '',
+    username: user?.username || '',
+    bio: user?.bio || '',
+    avatarUrl: user?.avatarUrl || '',
   });
+  
+  // Kullanıcı bilgileri yüklendiğinde form'u güncelle
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        username: user.username || '',
+        bio: user.bio || '',
+        avatarUrl: user.avatarUrl || '',
+      });
+    }
+  }, [user]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
 

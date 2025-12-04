@@ -1,6 +1,7 @@
 import { Navbar, Nav, Container, Button, NavDropdown } from 'react-bootstrap';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { clearAllAuth } from '../../utils/clearAuth';
 import { authStore } from '../../features/auth/store/authStore';
 
 /**
@@ -9,23 +10,53 @@ import { authStore } from '../../features/auth/store/authStore';
  * Shows "Login / Register" when logged out, user menu when logged in
  */
 const MainLayout = ({ children }) => {
-  // GEÇİCİ: Auth kontrolü devre dışı - direkt kullanıcı ekranında olmak için
-  // const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   
-  // Mock kullanıcı bilgileri - direkt kullanıcı ekranında olmak için
-  const isAuthenticated = true; // Geçici olarak her zaman authenticated
-  const user = { 
-    userId: 1, 
-    username: 'Test Kullanıcı', 
-    email: 'test@example.com' 
-  };
-  const navigate = useNavigate();
+  // Store'dan direkt kullanıcı bilgisini al (useAuth hook'undan gelen veri yerine)
+  const storeUser = authStore.getState().user;
 
-  const handleLogout = () => {
-    // GEÇİCİ: Logout devre dışı - direkt kullanıcı ekranında olmak için
-    // authStore.getState().logout();
-    // navigate('/login');
-    console.log('Logout (geçici olarak devre dışı)');
+  // Debug: Kullanıcı bilgisini console'a yazdır
+  console.log('🟡 MainLayout render - isAuthenticated:', isAuthenticated);
+  console.log('🟡 MainLayout - useAuth user:', user);
+  console.log('🟡 MainLayout - storeUser:', storeUser);
+  
+  // Store'dan gelen kullanıcıyı kullan, eğer yoksa useAuth'tan geleni kullan
+  const displayUser = storeUser || user;
+  
+  if (displayUser) {
+    console.log('🟡 MainLayout - Gösterilecek kullanıcı bilgisi:', {
+      username: displayUser.username,
+      userId: displayUser.userId,
+      email: displayUser.email
+    });
+    
+    // Eğer test kullanıcı görünüyorsa, hemen temizle
+    if (displayUser.username && (
+      displayUser.username.toLowerCase().includes('test') ||
+      displayUser.username === 'Test Kullanıcı' ||
+      displayUser.username === 'testkullanıcı' ||
+      displayUser.username === 'testuser'
+    )) {
+      console.error('🟡 MainLayout - TEST KULLANICI TESPİT EDİLDİ! Temizleniyor...');
+      console.error('🟡 Test kullanıcı:', displayUser);
+      
+      // Tüm auth verilerini temizle
+      clearAllAuth();
+      return null; // Render etme, temizleme işlemi devam ediyor
+    }
+  }
+
+  const handleLogout = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('🔴 Logout butonuna tıklandı - kullanıcı:', displayUser);
+    console.log('🔴 Logout - localStorage öncesi:', {
+      auth_token: localStorage.getItem('auth_token'),
+      auth_user: localStorage.getItem('auth_user')
+    });
+    
+    // Tüm auth verilerini temizle
+    clearAllAuth();
   };
 
   return (
@@ -44,12 +75,12 @@ const MainLayout = ({ children }) => {
               <Nav.Link as={Link} to="/discover">
                 Keşfet
               </Nav.Link>
-              {isAuthenticated && (
+              {isAuthenticated && displayUser && (
                 <>
                   <Nav.Link as={Link} to="/me/library">
                     Kütüphanem
                   </Nav.Link>
-                  <Nav.Link as={Link} to={`/users/${user?.userId}`}>
+                  <Nav.Link as={Link} to={`/users/${displayUser?.userId}`}>
                     Profilim
                   </Nav.Link>
                 </>
@@ -61,10 +92,10 @@ const MainLayout = ({ children }) => {
                 <NavDropdown
                   title={
                     <span>
-                      {user?.avatarUrl ? (
+                      {displayUser?.avatarUrl ? (
                         <img
-                          src={user.avatarUrl}
-                          alt={user.username}
+                          src={displayUser.avatarUrl}
+                          alt={displayUser.username}
                           style={{
                             width: '30px',
                             height: '30px',
@@ -75,7 +106,7 @@ const MainLayout = ({ children }) => {
                       ) : (
                         <span className="me-2">👤</span>
                       )}
-                      {user?.username || 'Kullanıcı'}
+                      {displayUser?.username || 'Kullanıcı'}
                     </span>
                   }
                   id="user-nav-dropdown"

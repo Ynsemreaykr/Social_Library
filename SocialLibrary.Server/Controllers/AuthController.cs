@@ -51,10 +51,11 @@ public class AuthController : ControllerBase
         try
         {
             await _authService.ForgotPasswordAsync(dto.Email);
-            return Ok(new { message = "Tek kullanımlık şifre e-posta adresinize gönderildi." });
+            return Ok(new { message = "Tek kullanımlık şifre e-posta adresinize gönderildi. Lütfen spam klasörünü de kontrol edin." });
         }
         catch (Exception ex)
         {
+            // Email gönderim hatası - detaylı mesaj döndür
             return BadRequest(new { error = ex.Message });
         }
     }

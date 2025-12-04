@@ -35,21 +35,14 @@ public class AuthService : IAuthService
         if (await _users.AnyAsync(dto.Email, dto.Username))
             throw new Exception("Email or username already taken.");
 
-        // Tek kullanımlık şifre oluştur (6 haneli rastgele sayı)
-        var random = new Random();
-        var oneTimePassword = random.Next(100000, 999999).ToString();
-
+        // Kullanıcının girdiği şifreyi hash'le
         var user = _mapper.Map<User>(dto);
-        user.PasswordHash = PasswordHasher.Hash(oneTimePassword);
+        user.PasswordHash = PasswordHasher.Hash(dto.Password);
 
         await _users.AddAsync(user);
         await _uow.SaveChangesAsync();
 
-        // Tek kullanımlık şifreyi email'e gönder
-        await _emailService.SendOneTimePasswordAsync(user.Email, oneTimePassword);
-
-        // Kayıt başarılı - token döndürmüyoruz, sadece başarı mesajı
-        // Kullanıcı email'ine gönderilen şifre ile giriş yapacak
+        // Kayıt başarılı - token döndürmüyoruz, kullanıcı giriş yapmalı
         return new AuthResponseDto(
             UserId: user.Id,
             Username: user.Username,

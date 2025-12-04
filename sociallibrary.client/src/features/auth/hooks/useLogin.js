@@ -15,15 +15,28 @@ export const useLogin = () => {
   const mutation = useMutation({
     mutationFn: ({ email, password }) => loginApi(email, password),
     onSuccess: (data) => {
+      // Debug: Backend'den ne geldiğini göster
+      console.log('🔵 LOGIN BAŞARILI - Backend\'den gelen veri:', data);
+      console.log('🔵 Username:', data.username, 'UserId:', data.userId, 'Email:', data.email);
+      
       // On successful login:
       // 1. Store token and user in auth store
       // 2. Save to localStorage (handled in store)
       // 3. Navigate to home page
-      authStore.getState().login(data.token, {
+      const userData = {
         userId: data.userId,
         username: data.username,
         email: data.email,
-      });
+      };
+      
+      console.log('🔵 Store\'a kaydedilecek kullanıcı verisi:', userData);
+      
+      authStore.getState().login(data.token, userData);
+      
+      // Store'dan kontrol et
+      const storedUser = authStore.getState().user;
+      console.log('🔵 Store\'a kaydedildikten sonra kontrol:', storedUser);
+      
       setError(null);
       // Login başarılı - ana sayfaya yönlendir
       navigate('/');
