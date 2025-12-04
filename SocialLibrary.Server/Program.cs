@@ -27,6 +27,9 @@ builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<JwtTokenGenerator>();
 
+// Email Service
+builder.Services.AddScoped<IEmailService, EmailService>();
+
 // Content Service
 builder.Services.AddScoped<IContentService, ContentService>();
 builder.Services.AddScoped<ILibraryService, LibraryService>();
@@ -74,6 +77,7 @@ builder.Services.AddScoped<IListItemRepository, ListItemRepository>();
 builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
 builder.Services.AddScoped<IActivityLikeRepository, ActivityLikeRepository>();
 builder.Services.AddScoped<IActivityCommentRepository, ActivityCommentRepository>();
+builder.Services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
 
 // Generic Repository for Follow entity
 builder.Services.AddScoped(typeof(IGenericRepository<SocialLibrary.Domain.Entities.Follow>), 
@@ -204,7 +208,8 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// SPA fallback - index.html'i serve et
+// SPA fallback - index.html'i serve et (API route'ları hariç)
+// Not: MapControllers() önce çağrıldığı için API route'ları otomatik olarak exclude edilir
 app.MapFallbackToFile("/index.html");
 
 // Development modunda hem React app hem Swagger'ı aç ve URL bilgilerini göster

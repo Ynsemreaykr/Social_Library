@@ -12,6 +12,7 @@ public interface IUnitOfWork
     IActivityRepository Activities { get; }
     IActivityLikeRepository ActivityLikes { get; }
     IActivityCommentRepository ActivityComments { get; }
+    IPasswordResetTokenRepository PasswordResetTokens { get; }
 
     Task<int> SaveChangesAsync();
 }

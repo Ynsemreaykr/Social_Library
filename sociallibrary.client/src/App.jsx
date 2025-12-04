@@ -26,6 +26,12 @@ const queryClient = new QueryClient({
 function App() {
   // İlk açılışta token validation yap
   useEffect(() => {
+    // Reset password sayfasında token validation yapma (token olmamalı)
+    if (window.location.pathname === '/reset-password' || window.location.pathname.startsWith('/reset-password')) {
+      console.log('[App] Reset password sayfası - token validation atlanıyor');
+      return;
+    }
+
     const token = authStore.getState().token;
     if (token) {
       // Token varsa, geçerli olup olmadığını kontrol et
@@ -45,8 +51,11 @@ function App() {
         });
     } else {
       // Token yoksa, localStorage'ı temizle (eski veriler olabilir)
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
+      // Ama reset-password sayfasında token olmamalı, bu yüzden temizleme
+      if (window.location.pathname !== '/reset-password' && !window.location.pathname.startsWith('/reset-password')) {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+      }
     }
   }, []);
 

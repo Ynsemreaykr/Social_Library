@@ -14,7 +14,7 @@ public class UserRepository : GenericRepository<User>, IUserRepository
         => await _dbSet.FirstOrDefaultAsync(x => x.Id == id);
 
     public async Task<User?> GetByEmailAsync(string email)
-        => await _dbSet.FirstOrDefaultAsync(x => x.Email == email);
+        => await _dbSet.FirstOrDefaultAsync(x => x.Email.ToLower() == email.ToLower());
 
     public async Task<User?> GetByUsernameAsync(string username)
         => await _dbSet.FirstOrDefaultAsync(x => x.Username == username);

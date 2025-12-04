@@ -18,7 +18,8 @@ namespace SocialLibrary.Infrastructure.Repositories.UnitOfWork
             IListItemRepository listItems,
             IActivityRepository activities,
             IActivityLikeRepository activityLikes,
-            IActivityCommentRepository activityComments)
+            IActivityCommentRepository activityComments,
+            IPasswordResetTokenRepository passwordResetTokens)
         {
             _context = context;
             Users = users;
@@ -31,6 +32,7 @@ namespace SocialLibrary.Infrastructure.Repositories.UnitOfWork
             Activities = activities;
             ActivityLikes = activityLikes;
             ActivityComments = activityComments;
+            PasswordResetTokens = passwordResetTokens;
         }
 
         public IUserRepository Users { get; }
@@ -43,6 +45,7 @@ namespace SocialLibrary.Infrastructure.Repositories.UnitOfWork
         public IActivityRepository Activities { get; }
         public IActivityLikeRepository ActivityLikes { get; }
         public IActivityCommentRepository ActivityComments { get; }
+        public IPasswordResetTokenRepository PasswordResetTokens { get; }
 
         public Task<int> SaveChangesAsync()
             => _context.SaveChangesAsync();

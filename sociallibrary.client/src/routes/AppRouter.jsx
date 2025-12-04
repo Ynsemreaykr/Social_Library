@@ -5,6 +5,7 @@ import ProtectedRoute from './ProtectedRoute';
 import LoginPage from '../features/auth/pages/LoginPage';
 import RegisterPage from '../features/auth/pages/RegisterPage';
 import ForgotPasswordPage from '../features/auth/pages/ForgotPasswordPage';
+import ResetPasswordPage from '../features/auth/pages/ResetPasswordPage';
 import FeedPage from '../features/feed/pages/FeedPage';
 import DiscoverPage from '../features/content/pages/DiscoverPage';
 import ContentDetailPage from '../features/content/pages/ContentDetailPage';
@@ -75,6 +76,14 @@ const AppRouter = () => {
           element={
             <MainLayout>
               <ForgotPasswordPage />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/reset-password"
+          element={
+            <MainLayout>
+              <ResetPasswordPage />
             </MainLayout>
           }
         />

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Form, Button, Alert, Container, Card } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import { forgotPassword } from '../../../api/authApi';
 
 /**
  * Forgot Password Page (Şifremi Unuttum) - Proje metni 2.1.1
  * Kullanıcının e-postasına sıfırlama linki gönderilmesi
- * Görsel arayüz - backend bağlantısı şimdilik yok
  */
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
@@ -14,7 +14,7 @@ const ForgotPasswordPage = () => {
   const [error, setError] = useState(null);
   const [validationError, setValidationError] = useState(null);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setValidationError(null);
@@ -30,15 +30,44 @@ const ForgotPasswordPage = () => {
       return;
     }
 
-    // Şimdilik sadece görsel - backend bağlantısı yok
     setIsLoading(true);
     
-    // Simüle edilmiş API çağrısı
-    setTimeout(() => {
+    // DEBUG: Çok açık loglar
+    window.DEBUG_FORGOT_PASSWORD = true;
+    console.log('🔵🔵🔵 FORGOT PASSWORD BAŞLADI 🔵🔵🔵');
+    console.log('Email:', email);
+    console.log('Timestamp:', new Date().toISOString());
+    
+    try {
+      console.log('========================================');
+      console.log('[ForgotPasswordPage] Şifre sıfırlama isteği gönderiliyor');
+      console.log('[ForgotPasswordPage] Email:', email);
+      console.log('[ForgotPasswordPage] API Endpoint: /Auth/forgot-password');
+      console.log('[ForgotPasswordPage] forgotPassword fonksiyonu çağrılıyor...');
+      
+      const response = await forgotPassword(email);
+      
+      console.log('[ForgotPasswordPage] ✅ API çağrısı başarılı!');
+      console.log('[ForgotPasswordPage] Response:', response);
+      console.log('========================================');
+      
       setIsLoading(false);
       setIsSubmitted(true);
-      console.log('Şifre sıfırlama isteği gönderildi:', email);
-    }, 1000);
+      console.log('🔵🔵🔵 FORGOT PASSWORD BAŞARILI 🔵🔵🔵');
+    } catch (err) {
+      console.error('========================================');
+      console.error('[ForgotPasswordPage] ❌ HATA!');
+      console.error('[ForgotPasswordPage] Error:', err);
+      console.error('[ForgotPasswordPage] Error message:', err.message);
+      console.error('[ForgotPasswordPage] Error response:', err.response);
+      console.error('[ForgotPasswordPage] Error response data:', err.response?.data);
+      console.error('[ForgotPasswordPage] Error response status:', err.response?.status);
+      console.error('========================================');
+      
+      setIsLoading(false);
+      const errorMessage = err.response?.data?.error || err.message || 'Bir hata oluştu. Lütfen tekrar deneyin.';
+      setError(errorMessage);
+    }
   };
 
   if (isSubmitted) {
