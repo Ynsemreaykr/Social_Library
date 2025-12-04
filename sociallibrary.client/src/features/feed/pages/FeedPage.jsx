@@ -18,7 +18,7 @@ const FeedPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const pageSize = 15;
+  const pageSize = 5; // İlk 5 aktivite göster
 
   // Feed'i yükle
   const loadFeed = useCallback(async (page = 1, append = false) => {
@@ -66,6 +66,24 @@ const FeedPage = () => {
       loadFeed(currentPage + 1, true);
     }
   };
+
+  // Scroll ile otomatik yükleme
+  useEffect(() => {
+    const handleScroll = () => {
+      // Sayfanın en altına yaklaşıldığında yükle (100px kala)
+      if (
+        window.innerHeight + window.scrollY >= document.documentElement.offsetHeight - 100 &&
+        !isLoadingMore &&
+        hasMore &&
+        activities.length > 0
+      ) {
+        handleLoadMore();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isLoadingMore, hasMore, activities.length, currentPage, loadFeed]);
 
   // Giriş yapmamış kullanıcılar için hoş geldin mesajı
   if (!isAuthenticated) {
@@ -178,7 +196,7 @@ const FeedPage = () => {
           {/* Son sayfa mesajı */}
           {!hasMore && activities.length > 0 && (
             <Alert variant="info" className="text-center">
-              Tüm aktiviteler yüklendi.
+              Bütün aktiviteler görüntülendi.
             </Alert>
           )}
         </>

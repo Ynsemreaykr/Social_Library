@@ -1,18 +1,23 @@
-import { useState } from 'react';
-import { Container, Card, Form, Button, Alert } from 'react-bootstrap';
+import { useState, useEffect } from 'react';
+import { Container, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../hooks/useAuth';
+import { getUserProfileById, updateProfile } from '../../../api/userApi';
 
 /**
  * Edit Profile Page (Profili Düzenle Sayfası)
  * Kullanıcının profil bilgilerini düzenlemesi
- * Görsel arayüz - backend bağlantısı şimdilik yok
+ * Backend bağlantılı
  */
 const EditProfilePage = () => {
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
-    username: 'Test Kullanıcı',
-    bio: 'Kitap ve film sever bir kullanıcı. Özellikle bilimkurgu ve fantastik türlere ilgiliyim.',
+    bio: '',
     avatarUrl: '',
   });
   const [selectedFile, setSelectedFile] = useState(null);
@@ -26,10 +31,49 @@ const EditProfilePage = () => {
     }));
   };
 
+  // Mevcut profil bilgilerini yükle
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!currentUser?.userId) {
+        setError('Giriş yapmanız gerekiyor.');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        const profile = await getUserProfileById(currentUser.userId);
+        setFormData({
+          bio: profile.bio || '',
+          avatarUrl: profile.avatarUrl || '',
+        });
+        if (profile.avatarUrl) {
+          setPreviewUrl(profile.avatarUrl);
+        }
+      } catch (err) {
+        console.error('Error loading profile:', err);
+        setError('Profil bilgileri yüklenirken bir hata oluştu.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [currentUser]);
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Dosya boyutu kontrolü (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Dosya boyutu 5MB\'dan büyük olamaz.');
+        return;
+      }
+
       setSelectedFile(file);
+      setError(null);
+      
       // Preview oluştur
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -39,15 +83,64 @@ const EditProfilePage = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Şimdilik sadece görsel - backend bağlantısı yok
-    console.log('Profil güncellendi:', formData);
-    setShowSuccess(true);
-    setTimeout(() => {
-      navigate('/users/1'); // Profil sayfasına geri dön
-    }, 2000);
+    
+    if (!currentUser?.userId) {
+      setError('Giriş yapmanız gerekiyor.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      setShowSuccess(false);
+
+      // Resim seçildiyse base64'e çevir
+      let avatarUrl = formData.avatarUrl;
+      if (selectedFile) {
+        const reader = new FileReader();
+        avatarUrl = await new Promise((resolve, reject) => {
+          reader.onloadend = () => {
+            resolve(reader.result); // Base64 string
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(selectedFile);
+        });
+      }
+
+      // Backend'e gönder
+      await updateProfile({
+        avatarUrl: avatarUrl || null,
+        bio: formData.bio || null,
+      });
+
+      setShowSuccess(true);
+      
+      // Profil sayfasına yönlendir
+      setTimeout(() => {
+        navigate(`/users/${currentUser.userId}`);
+      }, 1500);
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      setError(err.response?.data?.error || 'Profil güncellenirken bir hata oluştu.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <Container>
+        <div className="text-center py-5">
+          <Spinner animation="border" role="status">
+            <span className="visually-hidden">Yükleniyor...</span>
+          </Spinner>
+          <p className="mt-2">Profil bilgileri yükleniyor...</p>
+        </div>
+      </Container>
+    );
+  }
 
   return (
     <Container>
@@ -59,6 +152,12 @@ const EditProfilePage = () => {
       {showSuccess && (
         <Alert variant="success" className="mb-4">
           Profil başarıyla güncellendi! Profil sayfasına yönlendiriliyorsunuz...
+        </Alert>
+      )}
+
+      {error && (
+        <Alert variant="danger" className="mb-4" dismissible onClose={() => setError(null)}>
+          {error}
         </Alert>
       )}
 
@@ -114,22 +213,6 @@ const EditProfilePage = () => {
 
             <hr className="my-4" />
 
-            {/* Kullanıcı Adı */}
-            <Form.Group className="mb-3">
-              <Form.Label>Kullanıcı Adı</Form.Label>
-              <Form.Control
-                type="text"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                placeholder="Kullanıcı adınızı girin"
-                required
-              />
-              <Form.Text className="text-muted">
-                Bu ad, profil sayfanızda ve yorumlarınızda görünecektir.
-              </Form.Text>
-            </Form.Group>
-
             {/* Biyografi */}
             <Form.Group className="mb-4">
               <Form.Label>Biyografi</Form.Label>
@@ -149,12 +232,20 @@ const EditProfilePage = () => {
 
             {/* Butonlar */}
             <div className="d-flex gap-2">
-              <Button variant="primary" type="submit">
-                Değişiklikleri Kaydet
+              <Button variant="primary" type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Spinner animation="border" size="sm" className="me-2" />
+                    Kaydediliyor...
+                  </>
+                ) : (
+                  'Değişiklikleri Kaydet'
+                )}
               </Button>
               <Button
                 variant="outline-secondary"
-                onClick={() => navigate('/users/1')}
+                onClick={() => navigate(`/users/${currentUser?.userId}`)}
+                disabled={isSubmitting}
               >
                 İptal
               </Button>

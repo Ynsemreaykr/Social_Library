@@ -23,6 +23,7 @@ export const useLogin = () => {
         userId: data.userId,
         username: data.username,
         email: data.email,
+        avatarUrl: data.avatarUrl || null,
       });
       setError(null);
       // Login başarılı - ana sayfaya yönlendir

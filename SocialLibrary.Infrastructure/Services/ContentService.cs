@@ -51,12 +51,27 @@ public class ContentService : IContentService
         if (entity == null)
             return null;
 
-        // Calculate average rating
-        var averageRating = entity.Ratings.Any() 
-            ? entity.Ratings.Average(r => r.Score) 
-            : 0.0;
+        // Calculate average rating (0.0 if no ratings)
+        var averageRating = 0.0;
+        var ratingCount = 0;
         
-        var ratingCount = entity.Ratings.Count;
+        if (entity.Ratings != null && entity.Ratings.Any())
+        {
+            var ratingsList = entity.Ratings.ToList();
+            ratingCount = ratingsList.Count;
+            var scores = ratingsList.Select(r => r.Score).ToList();
+            averageRating = ratingsList.Average(r => r.Score);
+            
+            Console.WriteLine($"[ContentService] GetDetailAsync - Ortalama hesaplanıyor:");
+            Console.WriteLine($"  ContentId: {entity.Id}");
+            Console.WriteLine($"  Toplam Rating Sayısı: {ratingCount}");
+            Console.WriteLine($"  Puanlar: [{string.Join(", ", scores)}]");
+            Console.WriteLine($"  Ortalama: {averageRating:F2}");
+        }
+        else
+        {
+            Console.WriteLine($"[ContentService] GetDetailAsync - Rating yok: ContentId={entity.Id}");
+        }
 
         // Parse ExtraJson to get summary/description
         string? summary = null;
@@ -196,5 +211,46 @@ public class ContentService : IContentService
         Console.WriteLine($"[ContentService] Content created - Id: {entity.Id}, ExternalId: {entity.ExternalId}, ContentType: {entity.ContentType} ({(int)entity.ContentType})");
 
         return _mapper.Map<ContentDto>(entity);
+    }
+
+    public async Task<double?> GetPlatformRatingByExternalIdAsync(string externalId, ContentType contentType)
+    {
+        var content = await _contents.GetByExternalIdAsync(externalId, contentType);
+        if (content == null)
+        {
+            Console.WriteLine($"[ContentService] GetPlatformRatingByExternalIdAsync - Content bulunamadı: ExternalId={externalId}, ContentType={contentType}");
+            return 0.0; // İçerik yoksa 0 döndür
+        }
+
+        // Include Ratings to calculate average
+        var contentWithRatings = await _contents
+            .Query()
+            .Include(x => x.Ratings)
+            .FirstOrDefaultAsync(x => x.Id == content.Id);
+
+        if (contentWithRatings == null)
+        {
+            Console.WriteLine($"[ContentService] GetPlatformRatingByExternalIdAsync - ContentWithRatings null: ContentId={content.Id}");
+            return 0.0;
+        }
+
+        if (contentWithRatings.Ratings == null || !contentWithRatings.Ratings.Any())
+        {
+            Console.WriteLine($"[ContentService] GetPlatformRatingByExternalIdAsync - Rating yok: ContentId={content.Id}, ExternalId={externalId}");
+            return 0.0; // Puan yoksa 0 döndür
+        }
+
+        // Debug: Tüm puanları logla
+        var ratingsList = contentWithRatings.Ratings.ToList();
+        var scores = ratingsList.Select(r => r.Score).ToList();
+        var average = ratingsList.Average(r => r.Score);
+        
+        Console.WriteLine($"[ContentService] GetPlatformRatingByExternalIdAsync - Ortalama hesaplanıyor:");
+        Console.WriteLine($"  ContentId: {content.Id}, ExternalId: {externalId}");
+        Console.WriteLine($"  Toplam Rating Sayısı: {ratingsList.Count}");
+        Console.WriteLine($"  Puanlar: [{string.Join(", ", scores)}]");
+        Console.WriteLine($"  Ortalama: {average:F2}");
+
+        return average;
     }
 }

@@ -68,6 +68,60 @@ export const createContent = async (contentData) => {
 };
 
 /**
+ * Get platform rating by external ID (TMDb or Google Books ID)
+ * @param {string} externalId - External ID (TMDb ID or Google Books ID)
+ * @param {string} contentType - Content type ('Movie' or 'Book')
+ * @returns {Promise<number|null>} Platform average rating or null if not found/no ratings
+ */
+export const getPlatformRatingByExternalId = async (externalId, contentType) => {
+  try {
+    const url = `/Content/external/${encodeURIComponent(externalId)}/rating`;
+    const params = { contentType };
+    
+    console.log('🌐 API Call: getPlatformRatingByExternalId', { url, params, externalId, contentType });
+    
+    const response = await axiosClient.get(url, { params });
+    
+    const rating = response.data;
+    console.log('📥 API Response:', { 
+      externalId, 
+      contentType, 
+      rating, 
+      ratingType: typeof rating,
+      isNull: rating === null,
+      isUndefined: rating === undefined
+    });
+    
+    // Backend 0.0 döndürebilir (puan yok), bu durumda da 0 olarak kabul et
+    // null veya undefined ise 0 döndür
+    const finalRating = rating !== null && rating !== undefined ? rating : 0.0;
+    
+    console.log('✅ Final Rating:', { externalId, finalRating });
+    
+    return finalRating;
+  } catch (error) {
+    console.error('❌ API Error: getPlatformRatingByExternalId', { 
+      externalId, 
+      contentType,
+      error: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data
+    });
+    
+    // If content not found or no ratings, return 0
+    if (error.response?.status === 404 || error.response?.status === 400) {
+      console.log('⚠️ 404/400 hatası, 0 döndürülüyor');
+      return 0.0;
+    }
+    
+    // Diğer hatalar için de 0 döndür (network hatası vs.)
+    console.warn('⚠️ Beklenmeyen hata, 0 döndürülüyor');
+    return 0.0;
+  }
+};
+
+/**
  * Get or create content by external ID (TMDb or Google Books ID)
  * @param {string} externalId - External ID (TMDb ID or Google Books ID)
  * @param {string} contentType - Content type ('Movie' or 'Book')

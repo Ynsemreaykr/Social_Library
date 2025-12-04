@@ -62,3 +62,13 @@ export const removeItemFromList = async (listId, contentId) => {
   return response.data;
 };
 
+/**
+ * Delete a list
+ * @param {number} listId - List ID
+ * @returns {Promise} Success message
+ */
+export const deleteList = async (listId) => {
+  const response = await axiosClient.delete(`/List/${listId}`);
+  return response.data;
+};
+

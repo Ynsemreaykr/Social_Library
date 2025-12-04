@@ -11,5 +11,9 @@ public class ListRepository : GenericRepository<SocialLibrary.Domain.Entities.Li
     public ListRepository(SocialLibraryDbContext context) : base(context) { }
 
     public async Task<IEnumerable<SocialLibrary.Domain.Entities.List>> GetUserListsAsync(int userId)
-        => await _dbSet.Where(x => x.UserId == userId).ToListAsync();
+        => await _dbSet
+            .Include(x => x.Items)
+                .ThenInclude(x => x.Content)
+            .Where(x => x.UserId == userId)
+            .ToListAsync();
 }

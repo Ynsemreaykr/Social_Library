@@ -55,7 +55,8 @@ public class AuthService : IAuthService
             UserId: user.Id,
             Username: user.Username,
             Email: user.Email,
-            Token: token
+            Token: token,
+            AvatarUrl: user.AvatarUrl
         );
     }
 
@@ -75,7 +76,8 @@ public class AuthService : IAuthService
             UserId: user.Id,
             Username: user.Username,
             Email: user.Email,
-            Token: token
+            Token: token,
+            AvatarUrl: user.AvatarUrl
         );
     }
 

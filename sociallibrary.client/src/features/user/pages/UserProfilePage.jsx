@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Container, Card, Badge, Nav, Tab, Button, Row, Col, Alert, Spinner, Modal } from 'react-bootstrap';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import useCustomListsStore from '../../list/hooks/useCustomLists';
 import useLibraryStore from '../../library/hooks/useLibrary';
 import ContentCard from '../../content/components/ContentCard';
+import ActivityCard from '../../feed/components/ActivityCard';
 import { getUserProfileById, followUser, unfollowUser, checkFollowStatus, getFollowers, getFollowing } from '../../../api/userApi';
 import { getUserLibrary } from '../../../api/libraryApi';
 import { getUserLists } from '../../../api/listApi';
+import { getUserActivities } from '../../../api/feedApi';
 import { useAuth } from '../../../hooks/useAuth';
 import { getContentDetail } from '../../../api/contentApi';
 
@@ -47,6 +49,13 @@ const UserProfilePage = () => {
   const [following, setFollowing] = useState([]);
   const [loadingFollowers, setLoadingFollowers] = useState(false);
   const [loadingFollowing, setLoadingFollowing] = useState(false);
+  const [activities, setActivities] = useState([]);
+  const [loadingActivities, setLoadingActivities] = useState(false);
+  const [activitiesError, setActivitiesError] = useState(null);
+  const [activitiesPage, setActivitiesPage] = useState(1);
+  const [hasMoreActivities, setHasMoreActivities] = useState(true);
+  const [isLoadingMoreActivities, setIsLoadingMoreActivities] = useState(false);
+  const activitiesPageSize = 10;
 
   const userId = userIdParam ? parseInt(userIdParam) : null;
   const isOwnProfile = currentUser && userId === currentUser.userId;
@@ -118,6 +127,53 @@ const UserProfilePage = () => {
 
     loadProfile();
   }, [userId, isOwnProfile, currentUser]);
+
+  // Kullanıcının aktivitelerini yükle
+  const loadUserActivities = useCallback(async (page = 1, append = false) => {
+    if (!userId) return;
+
+    try {
+      if (page === 1) {
+        setLoadingActivities(true);
+      } else {
+        setIsLoadingMoreActivities(true);
+      }
+      setActivitiesError(null);
+
+      const result = await getUserActivities(userId, page, activitiesPageSize);
+      
+      if (append) {
+        setActivities(prev => [...prev, ...(result.items || [])]);
+      } else {
+        setActivities(result.items || []);
+      }
+
+      // Daha fazla sayfa var mı kontrol et
+      const totalPages = Math.ceil((result.totalCount || 0) / activitiesPageSize);
+      setHasMoreActivities(page < totalPages);
+      setActivitiesPage(page);
+    } catch (err) {
+      console.error('Error loading user activities:', err);
+      setActivitiesError(err.response?.data?.error || 'Aktiviteler yüklenirken bir hata oluştu');
+    } finally {
+      setLoadingActivities(false);
+      setIsLoadingMoreActivities(false);
+    }
+  }, [userId, activitiesPageSize]);
+
+  // İlk yükleme
+  useEffect(() => {
+    if (userId) {
+      loadUserActivities(1, false);
+    }
+  }, [userId, loadUserActivities]);
+
+  // Daha fazla yükle
+  const handleLoadMoreActivities = useCallback(() => {
+    if (!isLoadingMoreActivities && hasMoreActivities) {
+      loadUserActivities(activitiesPage + 1, true);
+    }
+  }, [isLoadingMoreActivities, hasMoreActivities, activitiesPage, loadUserActivities]);
 
   // Takipçileri yükle
   const loadFollowers = async () => {
@@ -387,9 +443,17 @@ const UserProfilePage = () => {
                                   variant="link"
                                   size="sm"
                                   className="text-danger p-0"
-                                  onClick={() => {
+                                  onClick={async () => {
                                     if (window.confirm(`"${list.name}" listesini silmek istediğinize emin misiniz?`)) {
-                                      customListsStore.deleteList(list.id);
+                                      try {
+                                        await customListsStore.deleteList(list.id);
+                                        // Listeleri yeniden yükle
+                                        const lists = await getUserLists(userId);
+                                        setCustomLists(lists || []);
+                                      } catch (error) {
+                                        console.error('Error deleting list:', error);
+                                        alert('Liste silinirken bir hata oluştu: ' + (error.message || 'Bilinmeyen hata'));
+                                      }
                                     }
                                   }}
                                 >
@@ -434,7 +498,61 @@ const UserProfilePage = () => {
 
               {/* Son Aktiviteler Sekmesi */}
               <Tab.Pane eventKey="activity">
-                <p className="text-muted">Son aktiviteler burada gösterilecek...</p>
+                {loadingActivities ? (
+                  <div className="text-center py-4">
+                    <Spinner animation="border" />
+                    <p className="mt-2">Aktiviteler yükleniyor...</p>
+                  </div>
+                ) : activitiesError ? (
+                  <Alert variant="danger">
+                    <Alert.Heading>Hata!</Alert.Heading>
+                    <p>{activitiesError}</p>
+                  </Alert>
+                ) : activities.length === 0 ? (
+                  <Alert variant="info">
+                    Henüz aktivite bulunmuyor.
+                  </Alert>
+                ) : (
+                  <div>
+                    {activities.map((activity) => (
+                      <ActivityCard
+                        key={activity.activityId}
+                        activity={activity}
+                        onUpdate={() => {
+                          // Aktiviteleri yeniden yükle
+                          loadUserActivities(1, false);
+                        }}
+                      />
+                    ))}
+                    
+                    {/* Daha Fazla Yükle Butonu */}
+                    {hasMoreActivities && (
+                      <div className="text-center mt-3">
+                        <Button
+                          variant="outline-primary"
+                          onClick={handleLoadMoreActivities}
+                          disabled={isLoadingMoreActivities}
+                        >
+                          {isLoadingMoreActivities ? (
+                            <>
+                              <Spinner animation="border" size="sm" className="me-2" />
+                              Yükleniyor...
+                            </>
+                          ) : (
+                            'Daha Fazla Yükle'
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {/* Tüm aktiviteler görüntülendi mesajı */}
+                    {!hasMoreActivities && activities.length > 0 && (
+                      <Alert variant="info" className="text-center mt-3">
+                        Tüm aktiviteler görüntülendi.
+                      </Alert>
+                    )}
+                  </div>
+                )}
               </Tab.Pane>
             </Tab.Content>
           </Tab.Container>

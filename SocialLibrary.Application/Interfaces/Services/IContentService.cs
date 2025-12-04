@@ -13,4 +13,5 @@ public interface IContentService
     Task DeleteAsync(int id);
     Task<List<ContentDto>> SearchAsync(string? query, string? contentType, int? minYear, int? maxYear, int? minRating);
     Task<ContentDto> GetOrCreateByExternalIdAsync(string externalId, ContentType contentType, string title, int? year = null, string? posterUrl = null, string? extraJson = null);
+    Task<double?> GetPlatformRatingByExternalIdAsync(string externalId, ContentType contentType);
 }

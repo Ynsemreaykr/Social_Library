@@ -64,13 +64,92 @@ public class FeedService : IFeedService
         }
 
         // Get activities from followed users only (NOT including own activities)
+        // Sadece Rating ve Review aktivitelerini göster
         var activitiesQuery = _activities
             .Query()
             .Include(a => a.User)
             .Include(a => a.Content)
             .Include(a => a.Likes)
             .Include(a => a.Comments)
-            .Where(a => followedUserIds.Contains(a.UserId)) // Sadece takip edilen kullanıcılar
+            .Where(a => followedUserIds.Contains(a.UserId) && 
+                       (a.ActivityType == ActivityType.Rating || a.ActivityType == ActivityType.Review)) // Sadece Rating ve Review
+            .OrderByDescending(a => a.CreatedAt);
+
+        // Get total count for pagination
+        var totalCount = await activitiesQuery.CountAsync();
+
+        // Get paginated activities
+        var items = await activitiesQuery
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        // Map to DTOs and enrich with additional data
+        var activityDtos = new List<ActivityCardDto>();
+        
+        foreach (var activity in items)
+        {
+            var dto = _mapper.Map<ActivityCardDto>(activity);
+            
+            // Enrich with Score if it's a Rating activity
+            if (activity.ActivityType == ActivityType.Rating && activity.RelatedId.HasValue)
+            {
+                var rating = await _ratings.GetByIdAsync(activity.RelatedId.Value);
+                if (rating != null)
+                {
+                    dto = dto with { Score = rating.Score };
+                }
+            }
+            
+            // Enrich with ReviewExcerpt if it's a Review activity
+            if (activity.ActivityType == ActivityType.Review && activity.RelatedId.HasValue)
+            {
+                var review = await _reviews.GetByIdAsync(activity.RelatedId.Value);
+                if (review != null)
+                {
+                    // Get first 150-200 characters as excerpt
+                    var excerpt = review.Text.Length > 200 
+                        ? review.Text.Substring(0, 200) + "..." 
+                        : review.Text;
+                    dto = dto with { ReviewExcerpt = excerpt };
+                }
+            }
+
+            // Set LikeCount and CommentCount
+            dto = dto with
+            {
+                LikeCount = activity.Likes?.Count ?? 0,
+                CommentCount = activity.Comments?.Count ?? 0,
+            };
+
+            activityDtos.Add(dto);
+        }
+
+        return new PagedResult<ActivityCardDto>
+        {
+            Items = activityDtos,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+        };
+    }
+
+    /// <summary>
+    /// Get paginated activities for a specific user (their own activities)
+    /// Returns activities created by the specified user
+    /// </summary>
+    public async Task<PagedResult<ActivityCardDto>> GetUserActivitiesAsync(int userId, int page, int pageSize)
+    {
+        // Get activities from the specified user only
+        // Sadece Rating ve Review aktivitelerini göster
+        var activitiesQuery = _activities
+            .Query()
+            .Include(a => a.User)
+            .Include(a => a.Content)
+            .Include(a => a.Likes)
+            .Include(a => a.Comments)
+            .Where(a => a.UserId == userId && 
+                       (a.ActivityType == ActivityType.Rating || a.ActivityType == ActivityType.Review)) // Sadece Rating ve Review
             .OrderByDescending(a => a.CreatedAt);
 
         // Get total count for pagination

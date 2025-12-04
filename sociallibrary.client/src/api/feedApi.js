@@ -61,3 +61,34 @@ export const getMyFeed = async (page = 1, pageSize = 15) => {
   }
 };
 
+/**
+ * Get activities for a specific user (their own activities)
+ * @param {number} userId - User ID
+ * @param {number} page - Page number (default: 1)
+ * @param {number} pageSize - Items per page (default: 15)
+ * @returns {Promise} PagedResult with activities
+ */
+export const getUserActivities = async (userId, page = 1, pageSize = 15) => {
+  try {
+    const response = await axiosClient.get(`/Feed/user/${userId}/activities`, {
+      params: {
+        page,
+        pageSize,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching user activities:', error);
+    // Return empty result on error
+    if (error.response?.status === 404) {
+      return {
+        items: [],
+        page: page,
+        pageSize: pageSize,
+        totalCount: 0,
+      };
+    }
+    throw error;
+  }
+};
+

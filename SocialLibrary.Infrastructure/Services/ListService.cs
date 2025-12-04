@@ -31,10 +31,19 @@ public class ListService : IListService
 
     public async Task<int> CreateListAsync(int userId, CreateListDto dto)
     {
+        // Aynı isimde liste var mı kontrol et
+        var existingList = await _lists.Query()
+            .FirstOrDefaultAsync(l => l.UserId == userId && l.Name.ToLower() == dto.Name.ToLower());
+        
+        if (existingList != null)
+        {
+            throw new Exception("Bu isimde bir listeniz zaten var. Lütfen farklı bir isim seçin.");
+        }
+        
         var list = new List
         {
             UserId = userId,
-            Name = dto.Name,
+            Name = dto.Name.Trim(),
             Description = dto.Description
         };
         
@@ -82,6 +91,21 @@ public class ListService : IListService
             return;
 
         _listItems.Delete(listItem);
+        await _uow.SaveChangesAsync();
+    }
+
+    public async Task DeleteListAsync(int userId, int listId)
+    {
+        var list = await _lists.GetByIdAsync(listId);
+        if (list == null)
+            throw new Exception("List not found.");
+
+        // Liste kullanıcıya ait mi kontrol et
+        if (list.UserId != userId)
+            throw new UnauthorizedAccessException("Bu listeyi silme yetkiniz yok.");
+
+        // Liste silindiğinde ListItems otomatik silinir (Cascade Delete)
+        _lists.Delete(list);
         await _uow.SaveChangesAsync();
     }
 }

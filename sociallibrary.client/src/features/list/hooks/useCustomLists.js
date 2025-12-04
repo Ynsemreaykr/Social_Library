@@ -3,7 +3,8 @@ import {
   getMyLists, 
   createList, 
   addItemToList, 
-  removeItemFromList 
+  removeItemFromList,
+  deleteList as deleteListApi
 } from '../../../api/listApi';
 import { getOrCreateByExternalId } from '../../../api/contentApi';
 import { authStore } from '../../auth/store/authStore';
@@ -74,9 +75,10 @@ const useCustomListsStore = create((set, get) => {
 
         let contentId;
         
-        // Eğer contentItem.id zaten backend content ID'si ise (number ve küçük değilse)
-        if (contentItem.id && typeof contentItem.id === 'number' && contentItem.id < 1000000) {
-          // Muhtemelen backend content ID
+        // Eğer contentItem.id zaten backend content ID'si ise (number ve küçük - backend ID'ler genelde küçük)
+        // External ID'ler genelde büyük sayılar (TMDb ID'leri 100000+ olabilir, Google Books ID'leri string)
+        if (contentItem.id && typeof contentItem.id === 'number' && contentItem.id < 10000) {
+          // Muhtemelen backend content ID (küçük sayı)
           contentId = contentItem.id;
         } else {
           // Önce backend'de Content'i oluştur veya bul
@@ -103,23 +105,9 @@ const useCustomListsStore = create((set, get) => {
         // Backend'e ekle
         await addItemToList(listId, contentId);
 
-        // Local state'i güncelle
-        const lists = get().lists;
-        const list = lists.find(l => l.id === listId);
-        if (!list) return;
-
-        const exists = list.items?.some(
-          item => item.id === contentId && item._type === contentItem._type
-        );
-        
-        if (!exists) {
-          const updatedLists = lists.map(l => 
-            l.id === listId
-              ? { ...l, items: [...(l.items || []), { ...contentItem, id: contentId }] }
-              : l
-          );
-          set({ lists: updatedLists });
-        }
+        // Local state'i güncelle - backend'den yeniden yükle
+        const lists = await getMyLists();
+        set({ lists });
       } catch (error) {
         console.error('Error adding item to list:', error);
         throw error;
@@ -156,10 +144,17 @@ const useCustomListsStore = create((set, get) => {
       }
     },
 
-    // Özel listeyi sil - Backend API'ye bağlı (şimdilik sadece local)
+    // Özel listeyi sil - Backend API'ye bağlı
     deleteList: async (listId) => {
       try {
-        // TODO: Backend'de delete endpoint'i eklenince buraya ekle
+        const token = authStore.getState().token;
+        if (!token) {
+          throw new Error('Giriş yapmanız gerekiyor.');
+        }
+
+        await deleteListApi(listId);
+
+        // Local state'i güncelle
         const lists = get().lists;
         const updatedLists = lists.filter(l => l.id !== listId);
         set({ lists: updatedLists });
@@ -175,16 +170,15 @@ const useCustomListsStore = create((set, get) => {
       // contentItem.id backend content ID olabilir (number) veya external ID (string/number)
       const contentId = contentItem.id;
       return lists
-        .filter(list =>
-          (list.items || []).some(
-            item => {
-              // item.id backend content ID olabilir
-              // contentItem.id de backend content ID veya external ID olabilir
-              return item.id === contentId || 
-                     (item.id && contentId && item.id.toString() === contentId.toString());
-            }
-          )
-        )
+        .filter(list => {
+          const items = list.items || list.Items || [];
+          return items.some(item => {
+            // item.id backend content ID olabilir
+            // contentItem.id de backend content ID veya external ID olabilir
+            return item.id === contentId || 
+                   (item.id && contentId && item.id.toString() === contentId.toString());
+          });
+        })
         .map(list => list.id);
     },
   };

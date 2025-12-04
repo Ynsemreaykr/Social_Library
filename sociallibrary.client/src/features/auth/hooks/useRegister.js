@@ -24,6 +24,7 @@ export const useRegister = () => {
         userId: data.userId,
         username: data.username,
         email: data.email,
+        avatarUrl: data.avatarUrl || null,
       });
       setError(null);
       navigate('/');

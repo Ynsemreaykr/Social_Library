@@ -339,22 +339,12 @@ const ContentDetailPage = () => {
                   ))}
                 </div>
 
-                {/* Platform Puanı - Backend'den */}
-                {platformRating !== null && (
-                  <div className="mb-3">
-                    <Badge bg={platformRating >= 7 ? 'success' : platformRating >= 5 ? 'warning' : 'secondary'} style={{ fontSize: '1rem', padding: '0.5rem 1rem' }}>
-                      ⭐ Platform Puanı: {platformRating.toFixed(1)}/10
-                    </Badge>
-                  </div>
-                )}
-                {/* TMDb Puanı (opsiyonel) */}
-                {data.rating && (
-                  <div className="mb-3">
-                    <Badge bg="info" style={{ fontSize: '0.9rem', padding: '0.4rem 0.8rem' }}>
-                      TMDb: {data.rating.toFixed(1)}/10
-                    </Badge>
-                  </div>
-                )}
+                {/* Platform Puanı - Backend'den (yoksa 0 göster) */}
+                <div className="mb-3">
+                  <Badge bg={(platformRating ?? 0) >= 7 ? 'success' : (platformRating ?? 0) >= 5 ? 'warning' : 'secondary'} style={{ fontSize: '1rem', padding: '0.5rem 1rem' }}>
+                    ⭐ Platform Puanı: {(platformRating ?? 0).toFixed(1)}/10
+                  </Badge>
+                </div>
 
                 <div className="mb-3">
                   <Row>
@@ -513,14 +503,12 @@ const ContentDetailPage = () => {
                   ))}
                 </div>
 
-                {data.averageRating && (
-                  <div className="mb-3">
-                    <Badge bg={data.averageRating >= 4 ? 'success' : data.averageRating >= 3 ? 'warning' : 'secondary'} style={{ fontSize: '1rem', padding: '0.5rem 1rem' }}>
-                      ⭐ {data.averageRating.toFixed(1)}/5
-                      {data.ratingsCount && <span className="ms-2">({data.ratingsCount} değerlendirme)</span>}
-                    </Badge>
-                  </div>
-                )}
+                {/* Platform Puanı - Backend'den (yoksa 0 göster) */}
+                <div className="mb-3">
+                  <Badge bg={(platformRating ?? 0) >= 7 ? 'success' : (platformRating ?? 0) >= 5 ? 'warning' : 'secondary'} style={{ fontSize: '1rem', padding: '0.5rem 1rem' }}>
+                    ⭐ Platform Puanı: {(platformRating ?? 0).toFixed(1)}/10
+                  </Badge>
+                </div>
 
                 <div className="mb-3">
                   <Row>
@@ -839,6 +827,7 @@ const ContentDetailPage = () => {
             show={showAddToListModal}
             onHide={() => setShowAddToListModal(false)}
             contentItem={contentItem}
+            backendContentId={backendContentId}
           />
         </>
       )}

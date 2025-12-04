@@ -2,5 +2,7 @@
 
 public record ListDto(
     int Id,
-    string Name
+    string Name,
+    string? Description,
+    List<ListItemContentDto>? Items
 );

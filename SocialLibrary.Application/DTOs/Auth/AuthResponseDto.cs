@@ -4,5 +4,6 @@ public record AuthResponseDto(
     int UserId,
     string Username,
     string Email,
-    string Token
+    string Token,
+    string? AvatarUrl = null
 );

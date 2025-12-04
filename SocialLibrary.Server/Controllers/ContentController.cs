@@ -68,6 +68,24 @@ public class ContentController : ControllerBase
     }
 
     /// <summary>
+    /// Get platform rating by external ID (TMDb or Google Books ID)
+    /// </summary>
+    [HttpGet("external/{externalId}/rating")]
+    [AllowAnonymous]
+    public async Task<ActionResult<double?>> GetPlatformRatingByExternalId(
+        string externalId,
+        [FromQuery] string contentType)
+    {
+        if (string.IsNullOrWhiteSpace(contentType) || !Enum.TryParse<ContentType>(contentType, true, out var type))
+        {
+            return BadRequest("Invalid contentType. Must be 'Movie' or 'Book'.");
+        }
+
+        var rating = await _contents.GetPlatformRatingByExternalIdAsync(externalId, type);
+        return Ok(rating);
+    }
+
+    /// <summary>
     /// Get or create content by external ID (TMDb or Google Books ID)
     /// </summary>
     [HttpPost("external")]

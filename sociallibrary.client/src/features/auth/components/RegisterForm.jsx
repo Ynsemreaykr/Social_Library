@@ -17,8 +17,9 @@ const RegisterForm = () => {
     password: '',
     confirmPassword: '',
     bio: '',
-    avatarUrl: '',
   });
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
   const [validationErrors, setValidationErrors] = useState({});
 
   // Clear error when form changes
@@ -78,9 +79,50 @@ const RegisterForm = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Dosya boyutu kontrolü (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setValidationErrors((prev) => ({
+          ...prev,
+          avatar: 'Dosya boyutu 5MB\'dan büyük olamaz.',
+        }));
+        return;
+      }
+
+      setSelectedFile(file);
+      setValidationErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.avatar;
+        return newErrors;
+      });
+      
+      // Preview oluştur
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (validate()) {
+      // Resim seçildiyse base64'e çevir
+      let avatarUrl = null;
+      if (selectedFile) {
+        const reader = new FileReader();
+        avatarUrl = await new Promise((resolve, reject) => {
+          reader.onloadend = () => {
+            resolve(reader.result); // Base64 string
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(selectedFile);
+        });
+      }
+
       // Backend'e register isteği gönder
       // useRegister hook'u otomatik olarak:
       // - API'yi çağırır
@@ -91,7 +133,7 @@ const RegisterForm = () => {
         email: formData.email,
         password: formData.password,
         bio: formData.bio || null,
-        avatarUrl: formData.avatarUrl || null,
+        avatarUrl: avatarUrl,
       });
     }
   };
@@ -180,6 +222,57 @@ const RegisterForm = () => {
               </Form.Control.Feedback>
             </Form.Group>
 
+            {/* Avatar Upload */}
+            <Form.Group className="mb-3">
+              <Form.Label>Profil Resmi (Opsiyonel)</Form.Label>
+              <div className="text-center mb-2">
+                {previewUrl ? (
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    style={{
+                      width: '100px',
+                      height: '100px',
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      border: '2px solid #dee2e6',
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: '100px',
+                      height: '100px',
+                      borderRadius: '50%',
+                      backgroundColor: '#dee2e6',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '48px',
+                      margin: '0 auto',
+                    }}
+                  >
+                    👤
+                  </div>
+                )}
+              </div>
+              <Form.Control
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                disabled={isLoading}
+                className="mb-2"
+              />
+              {validationErrors.avatar && (
+                <Form.Text className="text-danger d-block">
+                  {validationErrors.avatar}
+                </Form.Text>
+              )}
+              <Form.Text className="text-muted">
+                JPG, PNG veya GIF formatında, maksimum 5MB
+              </Form.Text>
+            </Form.Group>
+
             <Form.Group className="mb-3">
               <Form.Label>Biyografi (Opsiyonel)</Form.Label>
               <Form.Control
@@ -193,21 +286,6 @@ const RegisterForm = () => {
               />
               <Form.Text className="text-muted">
                 Profilinizde görünecek kısa bir açıklama
-              </Form.Text>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Profil Fotoğrafı URL (Opsiyonel)</Form.Label>
-              <Form.Control
-                type="url"
-                name="avatarUrl"
-                value={formData.avatarUrl}
-                onChange={handleChange}
-                placeholder="https://example.com/avatar.jpg"
-                disabled={isLoading}
-              />
-              <Form.Text className="text-muted">
-                Profil fotoğrafınızın URL adresini girin
               </Form.Text>
             </Form.Group>
 

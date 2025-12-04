@@ -4,6 +4,7 @@ using SocialLibrary.Application.DTOs.List;
 using SocialLibrary.Application.Interfaces.Repositories;
 using SocialLibrary.Application.Interfaces.Services;
 using System.Security.Claims;
+using System.Linq;
 
 namespace SocialLibrary.Server.Controllers;
 
@@ -37,7 +38,26 @@ public class ListController : ControllerBase
             return Unauthorized();
 
         var lists = await _listRepository.GetUserListsAsync(userId.Value);
-        return Ok(_mapper.Map<List<ListDto>>(lists));
+        var listDtos = lists.Select(list => new ListDto(
+            list.Id,
+            list.Name,
+            list.Description,
+            list.Items != null && list.Items.Count > 0
+                ? list.Items
+                    .Where(item => item.Content != null)
+                    .Select(item => new ListItemContentDto(
+                        item.Content.Id,
+                        item.Content.ExternalId,
+                        item.Content.ContentType.ToString(),
+                        item.Content.Title,
+                        item.Content.PosterUrl,
+                        item.Content.Year
+                    ))
+                    .ToList()
+                : new List<ListItemContentDto>()
+        )).ToList();
+        
+        return Ok(listDtos);
     }
 
     /// <summary>
@@ -48,7 +68,26 @@ public class ListController : ControllerBase
     public async Task<ActionResult<List<ListDto>>> GetUserLists(int userId)
     {
         var lists = await _listRepository.GetUserListsAsync(userId);
-        return Ok(_mapper.Map<List<ListDto>>(lists));
+        var listDtos = lists.Select(list => new ListDto(
+            list.Id,
+            list.Name,
+            list.Description,
+            list.Items != null && list.Items.Count > 0
+                ? list.Items
+                    .Where(item => item.Content != null)
+                    .Select(item => new ListItemContentDto(
+                        item.Content.Id,
+                        item.Content.ExternalId,
+                        item.Content.ContentType.ToString(),
+                        item.Content.Title,
+                        item.Content.PosterUrl,
+                        item.Content.Year
+                    ))
+                    .ToList()
+                : new List<ListItemContentDto>()
+        )).ToList();
+        
+        return Ok(listDtos);
     }
 
     /// <summary>
@@ -107,6 +146,31 @@ public class ListController : ControllerBase
         {
             await _listService.RemoveFromListAsync(listId, contentId);
             return Ok(new { message = "Item removed from list successfully." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Delete a list
+    /// </summary>
+    [HttpDelete("{listId:int}")]
+    public async Task<IActionResult> DeleteList(int listId)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+            return Unauthorized();
+
+        try
+        {
+            await _listService.DeleteListAsync(userId.Value, listId);
+            return Ok(new { message = "List deleted successfully." });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
         }
         catch (Exception ex)
         {

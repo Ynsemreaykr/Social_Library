@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using System.Linq;
 using SocialLibrary.Application.DTOs.Content;
 using SocialLibrary.Application.DTOs.Library;
 using SocialLibrary.Application.DTOs.List;
@@ -38,8 +39,9 @@ public class MappingProfile : Profile
         CreateMap<CreateLibraryEntryRequestDto, LibraryEntry>();
         CreateMap<UpdateLibraryEntryRequestDto, LibraryEntry>();
 
-        // 🔥 List map'leri
-        CreateMap<List, ListDto>();
+        // 🔥 List map'leri - Record'lar için manuel mapping
+        // AutoMapper record'lar için ConstructUsing gerektirir, ancak kompleks LINQ sorguları sorun çıkarabilir
+        // Bu yüzden ListController'da manuel mapping yapacağız
         CreateMap<CreateListDto, List>();
     }
 }

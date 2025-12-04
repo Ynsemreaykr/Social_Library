@@ -47,7 +47,7 @@ public class FeedController : ControllerBase
     }
 
     /// <summary>
-    /// Get feed for a specific user
+    /// Get feed for a specific user (activities from users they follow)
     /// </summary>
     [HttpGet("user/{userId:int}")]
     [AllowAnonymous] // Can view any user's feed
@@ -57,6 +57,20 @@ public class FeedController : ControllerBase
         [FromQuery] int pageSize = 15)
     {
         var result = await _feedService.GetFeedAsync(userId, page, pageSize);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Get activities for a specific user (their own activities)
+    /// </summary>
+    [HttpGet("user/{userId:int}/activities")]
+    [AllowAnonymous] // Can view any user's activities
+    public async Task<ActionResult<PagedResult<ActivityCardDto>>> GetUserActivities(
+        int userId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 15)
+    {
+        var result = await _feedService.GetUserActivitiesAsync(userId, page, pageSize);
         return Ok(result);
     }
 }
