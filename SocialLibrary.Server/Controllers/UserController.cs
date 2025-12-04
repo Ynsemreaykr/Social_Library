@@ -139,6 +139,64 @@ public class UserController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Check if current user is following a user
+    /// </summary>
+    [HttpGet("{targetUserId:int}/follow/status")]
+    [Authorize]
+    public async Task<ActionResult<bool>> GetFollowStatus(int targetUserId)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+            return Unauthorized();
+
+        try
+        {
+            var isFollowing = await _userService.IsFollowingAsync(userId.Value, targetUserId);
+            return Ok(isFollowing);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get followers list for a user
+    /// </summary>
+    [HttpGet("{userId:int}/followers")]
+    [AllowAnonymous]
+    public async Task<ActionResult<List<UserListItemDto>>> GetFollowers(int userId)
+    {
+        try
+        {
+            var followers = await _userService.GetFollowersAsync(userId);
+            return Ok(followers);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get following list for a user
+    /// </summary>
+    [HttpGet("{userId:int}/following")]
+    [AllowAnonymous]
+    public async Task<ActionResult<List<UserListItemDto>>> GetFollowing(int userId)
+    {
+        try
+        {
+            var following = await _userService.GetFollowingAsync(userId);
+            return Ok(following);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
     private int? GetCurrentUserId()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 

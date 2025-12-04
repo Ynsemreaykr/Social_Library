@@ -112,15 +112,31 @@ public class ReviewService : IReviewService
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
 
-        return reviews.Select(r => new ReviewListItemDto(
-            Id: r.Id,
-            UserId: r.UserId,
-            Username: r.User.Username,
-            AvatarUrl: r.User.AvatarUrl,
-            Text: r.Text,
-            CreatedAt: r.CreatedAt,
-            UpdatedAt: r.UpdatedAt
-        )).ToList();
+        var reviewDtos = new List<ReviewListItemDto>();
+        
+        foreach (var review in reviews)
+        {
+            // Find associated Activity for this review
+            var activity = await _activities.Query()
+                .FirstOrDefaultAsync(a => 
+                    a.ActivityType == ActivityType.Review &&
+                    a.RelatedId == review.Id &&
+                    a.ContentId == contentId &&
+                    a.UserId == review.UserId);
+            
+            reviewDtos.Add(new ReviewListItemDto(
+                Id: review.Id,
+                UserId: review.UserId,
+                Username: review.User.Username,
+                AvatarUrl: review.User.AvatarUrl,
+                Text: review.Text,
+                CreatedAt: review.CreatedAt,
+                UpdatedAt: review.UpdatedAt,
+                ActivityId: activity?.Id
+            ));
+        }
+
+        return reviewDtos;
     }
 
     public async Task<ReviewDto?> GetUserReviewAsync(int userId, int contentId)

@@ -1,7 +1,10 @@
-import { Card, Badge, Button } from 'react-bootstrap';
+import { useState, useEffect } from 'react';
+import { Card, Badge, Button, Modal, Form, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale/tr';
+import { useAuth } from '../../../hooks/useAuth';
+import { likeActivity, unlikeActivity, isLiked, commentActivity, getActivityComments } from '../../../api/activityApi';
 
 /**
  * Activity Card Component
@@ -16,12 +19,105 @@ import { tr } from 'date-fns/locale/tr';
  * 
  * @param {Object} activity - ActivityCardDto from backend
  */
-const ActivityCard = ({ activity }) => {
+const ActivityCard = ({ activity, onUpdate }) => {
+  const { isAuthenticated } = useAuth();
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(activity.likeCount || 0);
+  const [commentCount, setCommentCount] = useState(activity.commentCount || 0);
+  const [showCommentModal, setShowCommentModal] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [showComments, setShowComments] = useState(false);
+  // Check if user liked this activity
+  useEffect(() => {
+    if (isAuthenticated && activity.activityId) {
+      isLiked(activity.activityId)
+        .then(setLiked)
+        .catch(() => setLiked(false));
+    }
+  }, [isAuthenticated, activity.activityId]);
+
   // Format time ago (e.g., "3 saat önce")
   const timeAgo = formatDistanceToNow(new Date(activity.createdAt), {
     addSuffix: true,
     locale: tr,
   });
+
+  // Truncate review excerpt to 150-200 characters
+  const getReviewExcerpt = (text, maxLength = 200) => {
+    if (!text) return '';
+    if (text.length <= maxLength) return text;
+    // Find the last space before maxLength to avoid cutting words
+    const truncated = text.substring(0, maxLength);
+    const lastSpace = truncated.lastIndexOf(' ');
+    return lastSpace > 0 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
+  };
+
+  // Get content link based on content type and external ID
+  const getContentLink = () => {
+    if (activity.externalId && activity.contentType) {
+      const type = activity.contentType.toLowerCase();
+      return `/content/${type}/${activity.externalId}`;
+    }
+    // Fallback to activity ID if external ID not available
+    return `/content/${activity.activityId || ''}`;
+  };
+
+  // Handle like/unlike
+  const handleLike = async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      if (liked) {
+        await unlikeActivity(activity.activityId);
+        setLiked(false);
+        setLikeCount(prev => Math.max(0, prev - 1));
+      } else {
+        await likeActivity(activity.activityId);
+        setLiked(true);
+        setLikeCount(prev => prev + 1);
+      }
+      if (onUpdate) onUpdate();
+    } catch (error) {
+      console.error('Error liking activity:', error);
+    }
+  };
+
+  // Handle comment submission
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+    if (!commentText.trim() || !isAuthenticated) return;
+
+    try {
+      setIsSubmitting(true);
+      await commentActivity(activity.activityId, commentText.trim());
+      setCommentText('');
+      setShowCommentModal(false);
+      setCommentCount(prev => prev + 1);
+      if (onUpdate) onUpdate();
+    } catch (error) {
+      console.error('Error commenting on activity:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Load comments
+  const handleShowComments = async () => {
+    if (showComments) {
+      setShowComments(false);
+      return;
+    }
+
+    try {
+      const commentsData = await getActivityComments(activity.activityId);
+      setComments(commentsData || []);
+      setShowComments(true);
+    } catch (error) {
+      console.error('Error loading comments:', error);
+    }
+  };
 
   // Get activity type text in Turkish
   const getActivityTypeText = () => {
@@ -109,7 +205,7 @@ const ActivityCard = ({ activity }) => {
         {/* Main Content: Content poster/cover */}
         {activity.posterUrl && (
           <div className="mb-3">
-            <Link to={`/content/${activity.activityId || ''}`}>
+            <Link to={getContentLink()}>
               <img
                 src={activity.posterUrl}
                 alt={activity.contentTitle || 'Content'}
@@ -125,7 +221,7 @@ const ActivityCard = ({ activity }) => {
             {activity.contentTitle && (
               <div className="mt-2">
                 <Link
-                  to={`/content/${activity.activityId || ''}`}
+                  to={getContentLink()}
                   style={{ textDecoration: 'none' }}
                 >
                   <strong>{activity.contentTitle}</strong>
@@ -143,26 +239,98 @@ const ActivityCard = ({ activity }) => {
         {activity.activityType === 'Review' && activity.reviewExcerpt && (
           <div className="mb-3">
             <p style={{ fontStyle: 'italic', color: '#6c757d' }}>
-              "{activity.reviewExcerpt}"
+              "{getReviewExcerpt(activity.reviewExcerpt, 200)}"
             </p>
-            <Link
-              to={`/content/${activity.activityId || ''}#review-${activity.activityId}`}
-              className="small"
-            >
-              Daha fazlasını oku...
-            </Link>
+            {activity.reviewExcerpt.length > 200 && (
+              <Link
+                to={`${getContentLink()}#review-${activity.activityId}`}
+                className="small"
+              >
+                Daha fazlasını oku...
+              </Link>
+            )}
           </div>
         )}
 
         {/* Footer: Like and Comment buttons */}
-        <div className="d-flex gap-3 pt-2 border-top">
-          <Button variant="link" size="sm" className="p-0 text-muted">
-            ❤️ Beğen ({activity.likeCount || 0})
-          </Button>
-          <Button variant="link" size="sm" className="p-0 text-muted">
-            💬 Yorum Yap ({activity.commentCount || 0})
-          </Button>
+        <div className="pt-2 border-top">
+          <div className="d-flex gap-3">
+            <Button 
+              variant="link" 
+              size="sm" 
+              className={`p-0 ${liked ? 'text-danger' : 'text-muted'}`}
+              onClick={handleLike}
+              disabled={!isAuthenticated}
+            >
+              {liked ? '❤️' : '🤍'} Beğen ({likeCount})
+            </Button>
+            <Button 
+              variant="link" 
+              size="sm" 
+              className="p-0 text-muted"
+              onClick={() => setShowCommentModal(true)}
+              disabled={!isAuthenticated}
+            >
+              💬 Yorum Yap ({commentCount})
+            </Button>
+            {commentCount > 0 && (
+              <Button 
+                variant="link" 
+                size="sm" 
+                className="p-0 text-muted"
+                onClick={handleShowComments}
+              >
+                {showComments ? 'Yorumları Gizle' : 'Yorumları Göster'}
+              </Button>
+            )}
+          </div>
+
+          {/* Comments section */}
+          {showComments && comments.length > 0 && (
+            <div className="mt-3 pt-3 border-top">
+              <h6 className="mb-2">Yorumlar:</h6>
+              {comments.map((comment) => (
+                <div key={comment.id} className="mb-2">
+                  <strong>{comment.username}</strong>
+                  <span className="text-muted small ms-2">
+                    {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: tr })}
+                  </span>
+                  <p className="mb-0 mt-1">{comment.text}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* Comment Modal */}
+        <Modal show={showCommentModal} onHide={() => setShowCommentModal(false)}>
+          <Modal.Header closeButton>
+            <Modal.Title>Yorum Yap</Modal.Title>
+          </Modal.Header>
+          <Form onSubmit={handleCommentSubmit}>
+            <Modal.Body>
+              <Form.Group>
+                <Form.Label>Yorumunuz</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={4}
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="Yorumunuzu buraya yazın..."
+                  required
+                />
+              </Form.Group>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="secondary" onClick={() => setShowCommentModal(false)}>
+                İptal
+              </Button>
+              <Button variant="primary" type="submit" disabled={isSubmitting || !commentText.trim()}>
+                {isSubmitting ? 'Gönderiliyor...' : 'Gönder'}
+              </Button>
+            </Modal.Footer>
+          </Form>
+        </Modal>
       </Card.Body>
     </Card>
   );

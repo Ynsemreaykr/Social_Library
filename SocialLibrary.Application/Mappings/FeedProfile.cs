@@ -10,11 +10,21 @@ public class FeedProfile : Profile
     public FeedProfile()
     {
         CreateMap<Activity, ActivityCardDto>()
-            .ForMember(dest => dest.ActivityId, opt => opt.MapFrom(src => src.Id))
-            .ForMember(dest => dest.ActivityType, opt => opt.MapFrom(src => src.ActivityType.ToString()))
-            .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.User.Username))
-            .ForMember(dest => dest.AvatarUrl, opt => opt.MapFrom(src => src.User.AvatarUrl))
-            .ForMember(dest => dest.ContentTitle, opt => opt.MapFrom(src => src.Content!.Title))
-            .ForMember(dest => dest.PosterUrl, opt => opt.MapFrom(src => src.Content!.PosterUrl));
+            .ConstructUsing(src => new ActivityCardDto(
+                src.Id,
+                src.ActivityType.ToString(),
+                src.User.Username,
+                src.User.AvatarUrl,
+                src.CreatedAt,
+                src.ContentId,
+                src.Content != null ? src.Content.Title : null,
+                src.Content != null ? src.Content.PosterUrl : null,
+                src.Content != null ? src.Content.ContentType.ToString() : null,
+                src.Content != null ? src.Content.ExternalId : null,
+                null, // Score - Will be set later if Rating activity
+                null, // ReviewExcerpt - Will be set later if Review activity
+                src.Likes != null ? src.Likes.Count : 0,
+                src.Comments != null ? src.Comments.Count : 0
+            ));
     }
 }

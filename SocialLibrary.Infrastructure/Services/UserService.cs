@@ -106,6 +106,60 @@ public class UserService : IUserService
         await _uow.SaveChangesAsync();
     }
 
+    public async Task<bool> IsFollowingAsync(int followerId, int targetUserId)
+    {
+        var follow = await _follows.Query()
+            .FirstOrDefaultAsync(f => f.FollowerId == followerId && f.FollowingId == targetUserId);
+        
+        return follow != null;
+    }
+
+    public async Task<List<UserListItemDto>> GetFollowersAsync(int userId)
+    {
+        // Get users who follow this user (Followers)
+        var followerIds = await _follows.Query()
+            .Where(f => f.FollowingId == userId)
+            .Select(f => f.FollowerId)
+            .ToListAsync();
+
+        if (!followerIds.Any())
+            return new List<UserListItemDto>();
+
+        var followers = await _users.Query()
+            .Where(u => followerIds.Contains(u.Id))
+            .ToListAsync();
+
+        return followers.Select(u => new UserListItemDto(
+            Id: u.Id,
+            Username: u.Username,
+            AvatarUrl: u.AvatarUrl,
+            Bio: u.Bio
+        )).ToList();
+    }
+
+    public async Task<List<UserListItemDto>> GetFollowingAsync(int userId)
+    {
+        // Get users that this user follows (Following)
+        var followingIds = await _follows.Query()
+            .Where(f => f.FollowerId == userId)
+            .Select(f => f.FollowingId)
+            .ToListAsync();
+
+        if (!followingIds.Any())
+            return new List<UserListItemDto>();
+
+        var following = await _users.Query()
+            .Where(u => followingIds.Contains(u.Id))
+            .ToListAsync();
+
+        return following.Select(u => new UserListItemDto(
+            Id: u.Id,
+            Username: u.Username,
+            AvatarUrl: u.AvatarUrl,
+            Bio: u.Bio
+        )).ToList();
+    }
+
     public async Task UpdateProfileAsync(int userId, UpdateProfileDto dto)
     {
         var user = await _users.GetByIdAsync(userId);

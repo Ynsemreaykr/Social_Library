@@ -64,3 +64,41 @@ export const unfollowUser = async (userId) => {
   return response.data;
 };
 
+/**
+ * Check if current user is following a user
+ * @param {number} userId - User ID to check
+ * @returns {Promise} Boolean indicating if following
+ */
+export const checkFollowStatus = async (userId) => {
+  try {
+    const response = await axiosClient.get(`/User/${userId}/follow/status`);
+    return response.data;
+  } catch (error) {
+    // Endpoint yoksa false döndür
+    if (error.response?.status === 404) {
+      return false;
+    }
+    throw error;
+  }
+};
+
+/**
+ * Get followers list for a user
+ * @param {number} userId - User ID
+ * @returns {Promise} List of users who follow this user
+ */
+export const getFollowers = async (userId) => {
+  const response = await axiosClient.get(`/User/${userId}/followers`);
+  return response.data;
+};
+
+/**
+ * Get following list for a user
+ * @param {number} userId - User ID
+ * @returns {Promise} List of users that this user follows
+ */
+export const getFollowing = async (userId) => {
+  const response = await axiosClient.get(`/User/${userId}/following`);
+  return response.data;
+};
+

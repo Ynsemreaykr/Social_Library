@@ -18,6 +18,7 @@ public class FeedService : IFeedService
     private readonly IActivityRepository _activities;
     private readonly IRatingRepository _ratings;
     private readonly IReviewRepository _reviews;
+    private readonly IGenericRepository<Follow> _follows;
     private readonly IUnitOfWork _uow;
     private readonly IMapper _mapper;
 
@@ -25,12 +26,14 @@ public class FeedService : IFeedService
         IActivityRepository activities,
         IRatingRepository ratings,
         IReviewRepository reviews,
+        IGenericRepository<Follow> follows,
         IUnitOfWork uow,
         IMapper mapper)
     {
         _activities = activities;
         _ratings = ratings;
         _reviews = reviews;
+        _follows = follows;
         _uow = uow;
         _mapper = mapper;
     }
@@ -41,25 +44,43 @@ public class FeedService : IFeedService
     /// </summary>
     public async Task<PagedResult<ActivityCardDto>> GetFeedAsync(int userId, int page, int pageSize)
     {
-        // TODO: Filter by followed users when Follow functionality is implemented
-        // For now, return all activities ordered by date
-        
-        // Get all activities with related data
-        var allActivities = await _activities
+        // Get list of user IDs that the current user follows
+        var followedUserIds = await _follows
+            .Query()
+            .Where(f => f.FollowerId == userId)
+            .Select(f => f.FollowingId)
+            .ToListAsync();
+
+        // If user doesn't follow anyone, return empty feed
+        if (!followedUserIds.Any())
+        {
+            return new PagedResult<ActivityCardDto>
+            {
+                Items = new List<ActivityCardDto>(),
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = 0,
+            };
+        }
+
+        // Get activities from followed users only (NOT including own activities)
+        var activitiesQuery = _activities
             .Query()
             .Include(a => a.User)
             .Include(a => a.Content)
             .Include(a => a.Likes)
             .Include(a => a.Comments)
-            .OrderByDescending(a => a.CreatedAt)
-            .ToListAsync();
+            .Where(a => followedUserIds.Contains(a.UserId)) // Sadece takip edilen kullanıcılar
+            .OrderByDescending(a => a.CreatedAt);
 
-        // Calculate pagination
-        var totalCount = allActivities.Count;
-        var items = allActivities
+        // Get total count for pagination
+        var totalCount = await activitiesQuery.CountAsync();
+
+        // Get paginated activities
+        var items = await activitiesQuery
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .ToList();
+            .ToListAsync();
 
         // Map to DTOs and enrich with additional data
         var activityDtos = new List<ActivityCardDto>();

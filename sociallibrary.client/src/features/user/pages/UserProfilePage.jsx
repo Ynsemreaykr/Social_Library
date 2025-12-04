@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Container, Card, Badge, Nav, Tab, Button, Row, Col, Alert, Spinner } from 'react-bootstrap';
+import { Container, Card, Badge, Nav, Tab, Button, Row, Col, Alert, Spinner, Modal } from 'react-bootstrap';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import useCustomListsStore from '../../list/hooks/useCustomLists';
 import useLibraryStore from '../../library/hooks/useLibrary';
 import ContentCard from '../../content/components/ContentCard';
-import { getUserProfileById } from '../../../api/userApi';
+import { getUserProfileById, followUser, unfollowUser, checkFollowStatus, getFollowers, getFollowing } from '../../../api/userApi';
 import { getUserLibrary } from '../../../api/libraryApi';
 import { getUserLists } from '../../../api/listApi';
 import { useAuth } from '../../../hooks/useAuth';
@@ -39,6 +39,14 @@ const UserProfilePage = () => {
   const [customLists, setCustomLists] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [showFollowingModal, setShowFollowingModal] = useState(false);
+  const [followers, setFollowers] = useState([]);
+  const [following, setFollowing] = useState([]);
+  const [loadingFollowers, setLoadingFollowers] = useState(false);
+  const [loadingFollowing, setLoadingFollowing] = useState(false);
 
   const userId = userIdParam ? parseInt(userIdParam) : null;
   const isOwnProfile = currentUser && userId === currentUser.userId;
@@ -89,6 +97,17 @@ const UserProfilePage = () => {
           console.error('Error loading lists:', err);
         }
 
+        // Takip durumunu kontrol et (sadece başkasının profili için ve giriş yapılmışsa)
+        if (!isOwnProfile && currentUser) {
+          try {
+            const followStatus = await checkFollowStatus(userId);
+            setIsFollowing(followStatus);
+          } catch (err) {
+            console.error('Error checking follow status:', err);
+            setIsFollowing(false);
+          }
+        }
+
       } catch (err) {
         console.error('Error loading profile:', err);
         setError(err.response?.data?.error || 'Profil yüklenirken bir hata oluştu');
@@ -98,7 +117,70 @@ const UserProfilePage = () => {
     };
 
     loadProfile();
-  }, [userId]);
+  }, [userId, isOwnProfile, currentUser]);
+
+  // Takipçileri yükle
+  const loadFollowers = async () => {
+    if (!userId) return;
+    
+    try {
+      setLoadingFollowers(true);
+      const data = await getFollowers(userId);
+      setFollowers(data || []);
+    } catch (err) {
+      console.error('Error loading followers:', err);
+      setFollowers([]);
+    } finally {
+      setLoadingFollowers(false);
+    }
+  };
+
+  // Takip edilenleri yükle
+  const loadFollowing = async () => {
+    if (!userId) return;
+    
+    try {
+      setLoadingFollowing(true);
+      const data = await getFollowing(userId);
+      setFollowing(data || []);
+    } catch (err) {
+      console.error('Error loading following:', err);
+      setFollowing([]);
+    } finally {
+      setLoadingFollowing(false);
+    }
+  };
+
+  // Takip/Takipten Çık işlemi
+  const handleFollowToggle = async () => {
+    if (!currentUser || !userId || isOwnProfile) return;
+
+    try {
+      setIsFollowLoading(true);
+      if (isFollowing) {
+        await unfollowUser(userId);
+        setIsFollowing(false);
+        // Takipçi sayısını güncelle
+        setUser(prev => ({
+          ...prev,
+          followersCount: Math.max(0, (prev?.followersCount || 0) - 1)
+        }));
+      } else {
+        await followUser(userId);
+        setIsFollowing(true);
+        // Takipçi sayısını güncelle
+        setUser(prev => ({
+          ...prev,
+          followersCount: (prev?.followersCount || 0) + 1
+        }));
+      }
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+      alert(error.response?.data?.error || 'Takip işlemi sırasında bir hata oluştu');
+    } finally {
+      setIsFollowLoading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -177,11 +259,35 @@ const UserProfilePage = () => {
                   <strong>{libraryEntries.watched.length + libraryEntries.read.length}</strong>
                   <span className="text-muted ms-1">İçerik</span>
                 </div>
-                <div>
+                <div 
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    setShowFollowersModal(true);
+                    loadFollowers();
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.textDecoration = 'underline';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.textDecoration = 'none';
+                  }}
+                >
                   <strong>{user.followersCount}</strong>
                   <span className="text-muted ms-1">Takipçi</span>
                 </div>
-                <div>
+                <div 
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    setShowFollowingModal(true);
+                    loadFollowing();
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.textDecoration = 'underline';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.textDecoration = 'none';
+                  }}
+                >
                   <strong>{user.followingCount}</strong>
                   <span className="text-muted ms-1">Takip Edilen</span>
                 </div>
@@ -211,8 +317,13 @@ const UserProfilePage = () => {
                   </>
                 ) : (
                   // Başkasının profili için
-                  <Button variant="primary" size="sm">
-                    Takip Et
+                  <Button 
+                    variant={isFollowing ? "outline-secondary" : "primary"} 
+                    size="sm"
+                    onClick={handleFollowToggle}
+                    disabled={isFollowLoading || !currentUser}
+                  >
+                    {isFollowLoading ? 'Yükleniyor...' : isFollowing ? 'Takipten Çık' : 'Takip Et'}
                   </Button>
                 )}
               </div>
@@ -329,6 +440,144 @@ const UserProfilePage = () => {
           </Tab.Container>
         </Card.Body>
       </Card>
+
+      {/* Takipçiler Modal */}
+      <Modal show={showFollowersModal} onHide={() => setShowFollowersModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Takipçiler</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {loadingFollowers ? (
+            <div className="text-center py-4">
+              <Spinner animation="border" />
+              <p className="mt-2">Yükleniyor...</p>
+            </div>
+          ) : followers.length === 0 ? (
+            <Alert variant="info">Henüz takipçiniz yok.</Alert>
+          ) : (
+            <div>
+              {followers.map((follower) => (
+                <Card key={follower.id} className="mb-2">
+                  <Card.Body>
+                    <div className="d-flex align-items-center">
+                      <div className="me-3">
+                        {follower.avatarUrl ? (
+                          <img
+                            src={follower.avatarUrl}
+                            alt={follower.username}
+                            style={{
+                              width: '50px',
+                              height: '50px',
+                              borderRadius: '50%',
+                              objectFit: 'cover',
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: '50px',
+                              height: '50px',
+                              borderRadius: '50%',
+                              backgroundColor: '#dee2e6',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '24px',
+                            }}
+                          >
+                            👤
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-grow-1">
+                        <Link
+                          to={`/users/${follower.id}`}
+                          style={{ textDecoration: 'none', fontWeight: 'bold', color: '#0d6efd' }}
+                          onClick={() => setShowFollowersModal(false)}
+                        >
+                          {follower.username}
+                        </Link>
+                        {follower.bio && (
+                          <p className="mb-0 text-muted small">{follower.bio}</p>
+                        )}
+                      </div>
+                    </div>
+                  </Card.Body>
+                </Card>
+              ))}
+            </div>
+          )}
+        </Modal.Body>
+      </Modal>
+
+      {/* Takip Edilenler Modal */}
+      <Modal show={showFollowingModal} onHide={() => setShowFollowingModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Takip Edilenler</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {loadingFollowing ? (
+            <div className="text-center py-4">
+              <Spinner animation="border" />
+              <p className="mt-2">Yükleniyor...</p>
+            </div>
+          ) : following.length === 0 ? (
+            <Alert variant="info">Henüz kimseyi takip etmiyorsunuz.</Alert>
+          ) : (
+            <div>
+              {following.map((followedUser) => (
+                <Card key={followedUser.id} className="mb-2">
+                  <Card.Body>
+                    <div className="d-flex align-items-center">
+                      <div className="me-3">
+                        {followedUser.avatarUrl ? (
+                          <img
+                            src={followedUser.avatarUrl}
+                            alt={followedUser.username}
+                            style={{
+                              width: '50px',
+                              height: '50px',
+                              borderRadius: '50%',
+                              objectFit: 'cover',
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: '50px',
+                              height: '50px',
+                              borderRadius: '50%',
+                              backgroundColor: '#dee2e6',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '24px',
+                            }}
+                          >
+                            👤
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-grow-1">
+                        <Link
+                          to={`/users/${followedUser.id}`}
+                          style={{ textDecoration: 'none', fontWeight: 'bold', color: '#0d6efd' }}
+                          onClick={() => setShowFollowingModal(false)}
+                        >
+                          {followedUser.username}
+                        </Link>
+                        {followedUser.bio && (
+                          <p className="mb-0 text-muted small">{followedUser.bio}</p>
+                        )}
+                      </div>
+                    </div>
+                  </Card.Body>
+                </Card>
+              ))}
+            </div>
+          )}
+        </Modal.Body>
+      </Modal>
     </Container>
   );
 };

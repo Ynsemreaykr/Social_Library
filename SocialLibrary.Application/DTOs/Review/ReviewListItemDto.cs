@@ -7,6 +7,7 @@ public record ReviewListItemDto(
     string? AvatarUrl,
     string Text,
     DateTime CreatedAt,
-    DateTime UpdatedAt
+    DateTime UpdatedAt,
+    int? ActivityId
 );
 

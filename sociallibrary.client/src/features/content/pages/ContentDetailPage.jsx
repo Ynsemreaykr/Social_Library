@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Container, Card, Row, Col, Badge, Button, Spinner, Alert, ButtonGroup } from 'react-bootstrap';
 import { useMovieDetails } from '../hooks/useMovies';
 import { useBookDetails } from '../hooks/useBooks';
@@ -11,6 +11,8 @@ import useRatingsStore from '../../ratings/hooks/useRatings';
 import { getOrCreateByExternalId, getContentDetail } from '../../../api/contentApi';
 import { getContentReviews } from '../../../api/reviewApi';
 import { authStore } from '../../auth/store/authStore';
+import { likeActivity, unlikeActivity, isLiked, getLikeCount } from '../../../api/activityApi';
+import { useAuth } from '../../../hooks/useAuth';
 
 /**
  * Content Detail Page (İçerik Detay Sayfası) - Proje metni 2.1.4
@@ -28,8 +30,10 @@ const ContentDetailPage = () => {
   const [platformRating, setPlatformRating] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loadingBackend, setLoadingBackend] = useState(false);
+  const [reviewLikes, setReviewLikes] = useState({}); // { reviewId: { liked: boolean, count: number } }
   const libraryStore = useLibraryStore();
   const ratingsStore = useRatingsStore();
+  const { isAuthenticated } = useAuth();
 
   // ID'yi decode et (URL'den gelen ID'ler encode edilmiş olabilir)
   const decodedId = id ? decodeURIComponent(id) : null;
@@ -143,6 +147,26 @@ const ContentDetailPage = () => {
         try {
           const reviewsData = await getContentReviews(content.id);
           setReviews(reviewsData || []);
+          
+          // Her yorumun beğeni durumunu yükle
+          if (reviewsData && reviewsData.length > 0 && isAuthenticated) {
+            const likesData = {};
+            for (const review of reviewsData) {
+              if (review.activityId) {
+                try {
+                  const [liked, count] = await Promise.all([
+                    isLiked(review.activityId).catch(() => false),
+                    getLikeCount(review.activityId).catch(() => 0)
+                  ]);
+                  likesData[review.id] = { liked, count };
+                } catch (err) {
+                  console.error(`Error loading like status for review ${review.id}:`, err);
+                  likesData[review.id] = { liked: false, count: 0 };
+                }
+              }
+            }
+            setReviewLikes(likesData);
+          }
         } catch (err) {
           console.error('Error loading reviews:', err);
         }
@@ -154,7 +178,7 @@ const ContentDetailPage = () => {
     };
     
     loadBackendData();
-  }, [data, decodedId, isMovie]);
+  }, [data, decodedId, isMovie, isAuthenticated]);
 
   // Kullanıcının puan/yorumunu backend'den yükle
   useEffect(() => {
@@ -661,11 +685,88 @@ const ContentDetailPage = () => {
                         </div>
                       )}
                       <div className="flex-grow-1">
-                        <strong>{review.username}</strong>
-                        <small className="text-muted ms-2">
-                          {new Date(review.createdAt).toLocaleDateString('tr-TR')}
-                        </small>
-                        <p className="mb-0 mt-2">{review.text}</p>
+                        <div className="d-flex justify-content-between align-items-start">
+                          <div className="flex-grow-1">
+                            <div className="mb-2">
+                              {review.userId ? (
+                                <Link
+                                  to={`/users/${review.userId}`}
+                                  style={{ 
+                                    textDecoration: 'none', 
+                                    fontWeight: 'bold', 
+                                    color: '#0d6efd',
+                                    cursor: 'pointer',
+                                    display: 'inline-block',
+                                    position: 'relative',
+                                    zIndex: 10
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.target.style.textDecoration = 'underline';
+                                    e.target.style.color = '#0a58ca';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.target.style.textDecoration = 'none';
+                                    e.target.style.color = '#0d6efd';
+                                  }}
+                                  onClick={(e) => {
+                                    console.log('🔗 Kullanıcı profiline tıklandı:', review.userId, review.username);
+                                  }}
+                                >
+                                  {review.username}
+                                </Link>
+                              ) : (
+                                <strong>{review.username}</strong>
+                              )}
+                              <small className="text-muted ms-2">
+                                {new Date(review.createdAt).toLocaleDateString('tr-TR')}
+                              </small>
+                            </div>
+                            <p className="mb-0">{review.text}</p>
+                          </div>
+                        </div>
+                        
+                        {/* Beğen Butonu */}
+                        {review.activityId && (
+                          <div className="mt-2 pt-2 border-top">
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className={`p-0 ${reviewLikes[review.id]?.liked ? 'text-danger' : 'text-muted'}`}
+                              onClick={async () => {
+                                if (!isAuthenticated || !review.activityId) return;
+                                
+                                const currentLike = reviewLikes[review.id] || { liked: false, count: 0 };
+                                
+                                try {
+                                  if (currentLike.liked) {
+                                    await unlikeActivity(review.activityId);
+                                    setReviewLikes(prev => ({
+                                      ...prev,
+                                      [review.id]: {
+                                        liked: false,
+                                        count: Math.max(0, currentLike.count - 1)
+                                      }
+                                    }));
+                                  } else {
+                                    await likeActivity(review.activityId);
+                                    setReviewLikes(prev => ({
+                                      ...prev,
+                                      [review.id]: {
+                                        liked: true,
+                                        count: currentLike.count + 1
+                                      }
+                                    }));
+                                  }
+                                } catch (error) {
+                                  console.error('Error toggling like:', error);
+                                }
+                              }}
+                              disabled={!isAuthenticated}
+                            >
+                              {reviewLikes[review.id]?.liked ? '❤️' : '🤍'} Beğen ({reviewLikes[review.id]?.count || 0})
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </Card.Body>

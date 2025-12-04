@@ -1,70 +1,71 @@
-import { useState } from 'react';
-import { Container, Card, Alert, Badge } from 'react-bootstrap';
+import { useState, useEffect, useCallback } from 'react';
+import { Container, Card, Alert, Button, Spinner } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
-import { usePopularBooks } from '../../content/hooks/useBooks';
 import ActivityCard from '../components/ActivityCard';
+import { getMyFeed } from '../../../api/feedApi';
 
 /**
  * Feed Page (Ana Sayfa) - Proje metni 2.1.2
  * Takip edilen kullanıcıların aktivitelerini gösterir
- * Şimdilik popüler kitaplara dair yorumlar gösteriliyor
- * Backend bağlantısı eklendikten sonra gerçek aktiviteler gösterilecek
+ * Backend'den gerçek aktiviteleri çeker ve sayfalandırma ile gösterir
  */
 const FeedPage = () => {
-  const { isAuthenticated } = useAuth();
-  
-  // Popüler kitapları çek
-  const { data: popularBooksData, isLoading: isLoadingBooks } = usePopularBooks(0, 5);
+  const { isAuthenticated, user } = useAuth();
+  const [activities, setActivities] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const pageSize = 15;
 
-  // Mock yorumlar - popüler kitaplara dair
-  const [mockReviews] = useState([
-    {
-      activityId: 1,
-      activityType: 'Review',
-      username: 'Ahmet Yılmaz',
-      avatarUrl: null,
-      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 saat önce
-      contentTitle: '1984',
-      posterUrl: 'https://images-na.ssl-images-amazon.com/images/I/81StSOpmkjL.jpg',
-      score: 5,
-      reviewExcerpt: 'George Orwell\'ın distopyası gerçekten etkileyici. Büyük Birader kavramı günümüzde bile geçerli. Herkesin okuması gereken bir klasik.',
-      likeCount: 45,
-      commentCount: 12,
-      contentId: 'mock1',
-      contentType: 'book',
-    },
-    {
-      activityId: 2,
-      activityType: 'Rating',
-      username: 'Ayşe Demir',
-      avatarUrl: null,
-      createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), // 5 saat önce
-      contentTitle: 'The Great Gatsby',
-      posterUrl: 'https://images-na.ssl-images-amazon.com/images/I/81QuEGw8VPL.jpg',
-      score: 4,
-      reviewExcerpt: null,
-      likeCount: 23,
-      commentCount: 5,
-      contentId: 'mock2',
-      contentType: 'book',
-    },
-    {
-      activityId: 3,
-      activityType: 'Review',
-      username: 'Mehmet Kaya',
-      avatarUrl: null,
-      createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 gün önce
-      contentTitle: 'Harry Potter and the Philosopher\'s Stone',
-      posterUrl: 'https://images-na.ssl-images-amazon.com/images/I/81YOuOGFCJL.jpg',
-      score: 5,
-      reviewExcerpt: 'Büyülü dünyaya ilk adım. J.K. Rowling\'in yaratıcılığı gerçekten hayranlık uyandırıcı. Çocukken okuduğum en güzel kitaplardan biri.',
-      likeCount: 78,
-      commentCount: 28,
-      contentId: 'mock3',
-      contentType: 'book',
-    },
-  ]);
+  // Feed'i yükle
+  const loadFeed = useCallback(async (page = 1, append = false) => {
+    if (!isAuthenticated || !user) return;
+
+    try {
+      if (page === 1) {
+        setIsLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
+      setError(null);
+
+      const result = await getMyFeed(page, pageSize);
+      
+      if (append) {
+        setActivities(prev => [...prev, ...(result.items || [])]);
+      } else {
+        setActivities(result.items || []);
+      }
+
+      // Daha fazla sayfa var mı kontrol et
+      const totalPages = Math.ceil((result.totalCount || 0) / pageSize);
+      setHasMore(page < totalPages);
+      setCurrentPage(page);
+    } catch (err) {
+      console.error('Error loading feed:', err);
+      setError(err.response?.data?.error || 'Feed yüklenirken bir hata oluştu');
+    } finally {
+      setIsLoading(false);
+      setIsLoadingMore(false);
+    }
+  }, [isAuthenticated, user]);
+
+  // İlk yükleme
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      loadFeed(1, false);
+    }
+  }, [isAuthenticated, user, loadFeed]);
+
+  // Daha fazla yükle
+  const handleLoadMore = () => {
+    if (!isLoadingMore && hasMore) {
+      loadFeed(currentPage + 1, true);
+    }
+  };
 
   // Giriş yapmamış kullanıcılar için hoş geldin mesajı
   if (!isAuthenticated) {
@@ -95,34 +96,94 @@ const FeedPage = () => {
     );
   }
 
+  // Loading durumu
+  if (isLoading) {
+    return (
+      <Container>
+        <div className="mb-4">
+          <h2>Ana Sayfa</h2>
+        </div>
+        <div className="text-center py-5">
+          <Spinner animation="border" role="status">
+            <span className="visually-hidden">Yükleniyor...</span>
+          </Spinner>
+          <p className="mt-3 text-muted">Aktiviteler yükleniyor...</p>
+        </div>
+      </Container>
+    );
+  }
+
+  // Hata durumu
+  if (error) {
+    return (
+      <Container>
+        <div className="mb-4">
+          <h2>Ana Sayfa</h2>
+        </div>
+        <Alert variant="danger">
+          <Alert.Heading>Hata!</Alert.Heading>
+          <p>{error}</p>
+        </Alert>
+      </Container>
+    );
+  }
+
   return (
     <Container>
       {/* Başlık ve açıklama */}
       <div className="mb-4">
         <h2>Ana Sayfa</h2>
         <p className="text-muted">
-          Takip ettiğiniz kullanıcıların son aktiviteleri ve popüler kitaplara dair yorumlar
+          Takip ettiğiniz kullanıcıların son aktiviteleri
         </p>
       </div>
 
-      {/* Popüler Kitaplara Dair Yorumlar */}
-      {mockReviews.length > 0 && (
+      {/* Aktiviteler */}
+      {activities.length > 0 ? (
         <>
           <Card className="shadow-sm mb-4">
             <Card.Body>
-              <h4 className="mb-3">📚 Popüler Kitaplara Dair Yorumlar</h4>
               <div>
-                {mockReviews.map((activity) => (
-                  <ActivityCard key={activity.activityId} activity={activity} />
+                {activities.map((activity) => (
+                  <ActivityCard 
+                    key={activity.activityId} 
+                    activity={activity}
+                    onUpdate={() => loadFeed(currentPage, false)}
+                  />
                 ))}
               </div>
             </Card.Body>
           </Card>
-        </>
-      )}
 
-      {/* Boş durum mesajı - Backend bağlantısı eklendikten sonra gerçek aktiviteler gösterilecek */}
-      {mockReviews.length === 0 && (
+          {/* Daha Fazla Yükle Butonu */}
+          {hasMore && (
+            <div className="text-center mb-4">
+              <Button
+                variant="outline-primary"
+                onClick={handleLoadMore}
+                disabled={isLoadingMore}
+              >
+                {isLoadingMore ? (
+                  <>
+                    <Spinner animation="border" size="sm" className="me-2" />
+                    Yükleniyor...
+                  </>
+                ) : (
+                  'Daha Fazla Yükle'
+                )}
+              </Button>
+            </div>
+          )}
+
+          {/* Son sayfa mesajı */}
+          {!hasMore && activities.length > 0 && (
+            <Alert variant="info" className="text-center">
+              Tüm aktiviteler yüklendi.
+            </Alert>
+          )}
+        </>
+      ) : (
+        /* Boş durum mesajı */
         <Alert variant="info" className="text-center">
           <Alert.Heading>Henüz aktivite yok</Alert.Heading>
           <p>
