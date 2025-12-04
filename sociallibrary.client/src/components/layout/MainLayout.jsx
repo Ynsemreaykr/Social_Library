@@ -1,5 +1,5 @@
 import { Navbar, Nav, Container, Button, NavDropdown } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { clearAllAuth } from '../../utils/clearAuth';
 import { authStore } from '../../features/auth/store/authStore';
@@ -10,6 +10,7 @@ import { authStore } from '../../features/auth/store/authStore';
  * Shows "Login / Register" when logged out, user menu when logged in
  */
 const MainLayout = ({ children }) => {
+  const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
   
   // Store'dan direkt kullanıcı bilgisini al (useAuth hook'undan gelen veri yerine)
@@ -55,8 +56,11 @@ const MainLayout = ({ children }) => {
       auth_user: localStorage.getItem('auth_user')
     });
     
-    // Tüm auth verilerini temizle
-    clearAllAuth();
+    // Store'dan logout yap
+    logout();
+    
+    // Login sayfasına yönlendir
+    navigate('/login');
   };
 
   return (

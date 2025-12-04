@@ -19,13 +19,20 @@ export const useLogin = () => {
       console.log('🔵 LOGIN BAŞARILI - Backend\'den gelen veri:', data);
       console.log('🔵 Username:', data.username, 'UserId:', data.userId, 'Email:', data.email);
       
+      // Backend'den gelen username'in geçerli olduğundan emin ol
+      if (!data.username || data.username.trim() === '') {
+        console.error('❌ Backend\'den geçersiz username geldi:', data.username);
+        setError('Kullanıcı bilgileri alınamadı. Lütfen tekrar deneyin.');
+        return;
+      }
+      
       // On successful login:
       // 1. Store token and user in auth store
       // 2. Save to localStorage (handled in store)
       // 3. Navigate to home page
       const userData = {
         userId: data.userId,
-        username: data.username,
+        username: data.username.trim(), // Trim whitespace
         email: data.email,
       };
       
@@ -36,6 +43,19 @@ export const useLogin = () => {
       // Store'dan kontrol et
       const storedUser = authStore.getState().user;
       console.log('🔵 Store\'a kaydedildikten sonra kontrol:', storedUser);
+      
+      // localStorage'dan da kontrol et
+      const savedUserStr = localStorage.getItem('auth_user');
+      if (savedUserStr) {
+        const savedUser = JSON.parse(savedUserStr);
+        console.log('🔵 localStorage\'dan kontrol:', savedUser);
+        if (savedUser.username !== userData.username) {
+          console.error('❌ localStorage\'da username uyuşmuyor!', {
+            beklenen: userData.username,
+            kaydedilen: savedUser.username
+          });
+        }
+      }
       
       setError(null);
       // Login başarılı - ana sayfaya yönlendir
