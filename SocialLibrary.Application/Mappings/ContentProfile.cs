@@ -13,6 +13,8 @@ public class ContentProfile : Profile
         CreateMap<Content, ContentDto>()
             .ConstructUsing(src => new ContentDto(
                 src.Id,
+                src.ExternalId,
+                src.ContentType,
                 src.Title,
                 null, // Description yok, null
                 src.PosterUrl, // PosterUrl → CoverUrl

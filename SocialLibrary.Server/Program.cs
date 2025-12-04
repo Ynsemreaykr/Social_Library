@@ -117,7 +117,17 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddControllers();
+// JSON Serialization ayarları - Record'lar için
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Enum'ları string olarak serialize et
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        // Property name'leri camelCase'e çevir (JavaScript convention)
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        // Null değerleri dahil et
+        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never;
+    });
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(c =>

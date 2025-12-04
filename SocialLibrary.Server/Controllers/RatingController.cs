@@ -56,9 +56,8 @@ public class RatingController : ControllerBase
         try
         {
             var rating = await _ratingService.GetUserRatingAsync(userId.Value, contentId);
-            if (rating == null)
-                return NotFound(new { message = "Rating not found." });
-            
+            // Rating yoksa 404 yerine 200 OK ve null döndür
+            // Bu, frontend'in console'da 404 hatası görmesini önler
             return Ok(rating);
         }
         catch (Exception ex)

@@ -166,10 +166,14 @@ public class ContentService : IContentService
 
     public async Task<ContentDto> GetOrCreateByExternalIdAsync(string externalId, ContentType contentType, string title, int? year = null, string? posterUrl = null, string? extraJson = null)
     {
-        // Check if content already exists
+        // DEBUG: Gelen parametreleri logla
+        Console.WriteLine($"[ContentService] GetOrCreateByExternalIdAsync - ExternalId: {externalId}, ContentType: {contentType} ({(int)contentType}), Title: {title}");
+        
+        // Check if content already exists - SADECE AYNI ContentType ile kontrol et
         var existing = await _contents.GetByExternalIdAsync(externalId, contentType);
         if (existing != null)
         {
+            Console.WriteLine($"[ContentService] Content found - Id: {existing.Id}, ExternalId: {existing.ExternalId}, ContentType: {existing.ContentType} ({(int)existing.ContentType})");
             return _mapper.Map<ContentDto>(existing);
         }
 
@@ -177,15 +181,19 @@ public class ContentService : IContentService
         var entity = new Content
         {
             ExternalId = externalId,
-            ContentType = contentType,
+            ContentType = contentType, // ContentType'ı doğru kaydet
             Title = title,
             Year = year,
             PosterUrl = posterUrl,
             ExtraJson = extraJson
         };
 
+        Console.WriteLine($"[ContentService] Creating new Content - ExternalId: {entity.ExternalId}, ContentType: {entity.ContentType} ({(int)entity.ContentType})");
+
         await _contents.AddAsync(entity);
         await _uow.SaveChangesAsync();
+
+        Console.WriteLine($"[ContentService] Content created - Id: {entity.Id}, ExternalId: {entity.ExternalId}, ContentType: {entity.ContentType} ({(int)entity.ContentType})");
 
         return _mapper.Map<ContentDto>(entity);
     }

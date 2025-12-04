@@ -30,6 +30,18 @@ const LibraryPage = () => {
     toRead: [],
   };
 
+  // DEBUG: Library store state'i logla
+  console.log('📚 LibraryPage - Store State:', {
+    isLoading: libraryStore.isLoading,
+    error: libraryStore.error,
+    library: libraryStore.library,
+    libraryData: libraryData,
+    watchedLength: libraryData.watched.length,
+    toWatchLength: libraryData.toWatch.length,
+    readLength: libraryData.read.length,
+    toReadLength: libraryData.toRead.length
+  });
+
   // Loading durumu
   if (libraryStore.isLoading) {
     return (

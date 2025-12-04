@@ -95,9 +95,8 @@ public class ReviewController : ControllerBase
         try
         {
             var review = await _reviewService.GetUserReviewAsync(userId.Value, contentId);
-            if (review == null)
-                return NotFound(new { message = "Review not found." });
-            
+            // Review yoksa 404 yerine 200 OK ve null döndür
+            // Bu, frontend'in console'da 404 hatası görmesini önler
             return Ok(review);
         }
         catch (Exception ex)

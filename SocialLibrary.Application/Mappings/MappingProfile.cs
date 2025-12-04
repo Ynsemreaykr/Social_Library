@@ -17,7 +17,24 @@ public class MappingProfile : Profile
         // (ContentProfile daha detaylı mapping içeriyor)
 
         // 🔥 Library map'leri
-        CreateMap<LibraryEntry, LibraryEntryDto>();
+        // Record'lar için ConstructUsing kullan (positional parameters)
+        CreateMap<LibraryEntry, LibraryEntryDto>()
+            .ConstructUsing(src => new LibraryEntryDto(
+                src.Id,
+                src.UserId,
+                src.ContentId,
+                src.Status,
+                src.CreatedAt,
+                src.Content != null ? new ContentDto(
+                    src.Content.Id,
+                    src.Content.ExternalId,
+                    src.Content.ContentType,
+                    src.Content.Title,
+                    null, // Description yok
+                    src.Content.PosterUrl, // PosterUrl → CoverUrl
+                    src.Content.Year
+                ) : null
+            ));
         CreateMap<CreateLibraryEntryRequestDto, LibraryEntry>();
         CreateMap<UpdateLibraryEntryRequestDto, LibraryEntry>();
 

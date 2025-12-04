@@ -1,7 +1,11 @@
-﻿namespace SocialLibrary.Application.DTOs.Content;
+﻿using SocialLibrary.Domain.Enums;
+
+namespace SocialLibrary.Application.DTOs.Content;
 
 public record ContentDto(
     int Id,
+    string ExternalId,
+    ContentType ContentType,
     string Title,
     string? Description,
     string? CoverUrl,

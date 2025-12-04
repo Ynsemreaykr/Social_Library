@@ -33,20 +33,61 @@ const ContentDetailPage = () => {
 
   // ID'yi decode et (URL'den gelen ID'ler encode edilmiş olabilir)
   const decodedId = id ? decodeURIComponent(id) : null;
+  
+  // Film için ID'yi parse et (TMDb ID sayısal olmalı)
+  // Kitap için ID string olarak kalmalı (Google Books ID)
+  let movieId = null;
+  let bookId = null;
+  
+  if (isMovie && decodedId) {
+    const parsedId = isNaN(decodedId) ? null : parseInt(decodedId);
+    // TMDb ID kontrolü: Eğer ID çok küçükse (backend Content ID olabilir), hata ver
+    if (parsedId && parsedId < 100) {
+      console.error('❌ Geçersiz TMDb ID (çok küçük, backend Content ID olabilir):', {
+        parsedId,
+        decodedId,
+        id,
+        type
+      });
+      // ID'yi null yap ki hata mesajı gösterilsin
+      movieId = null;
+    } else {
+      movieId = parsedId;
+    }
+  } else if (!isMovie && decodedId) {
+    bookId = decodedId;
+  }
+  
+  // DEBUG: ID bilgilerini logla
+  console.log('🔍 ContentDetailPage ID Debug:', {
+    type,
+    id,
+    decodedId,
+    movieId,
+    bookId,
+    isMovie
+  });
+  
+  // Eğer movieId veya bookId null ise, hata göster
+  if (isMovie && !movieId) {
+    console.error('❌ ContentDetailPage: Geçersiz movie ID, detay sayfası açılamaz');
+  } else if (!isMovie && !bookId) {
+    console.error('❌ ContentDetailPage: Geçersiz book ID, detay sayfası açılamaz');
+  }
 
   // Film detayları hook'u
   const { 
     data: movieData, 
     isLoading: isLoadingMovie, 
     error: movieError 
-  } = useMovieDetails(isMovie && decodedId ? parseInt(decodedId) : null);
+  } = useMovieDetails(movieId);
 
   // Kitap detayları hook'u - ID'yi decode edilmiş halde kullan
   const { 
     data: bookData, 
     isLoading: isLoadingBook, 
     error: bookError 
-  } = useBookDetails(!isMovie && decodedId ? decodedId : null);
+  } = useBookDetails(bookId);
 
   const isLoading = isMovie ? isLoadingMovie : isLoadingBook;
   const error = isMovie ? movieError : bookError;
@@ -55,19 +96,19 @@ const ContentDetailPage = () => {
   // İçeriğin kütüphane durumunu kontrol et
   const contentItem = data ? {
     ...data,
-    id: isMovie ? parseInt(decodedId) : decodedId,
+    id: isMovie ? movieId : bookId,
     _type: isMovie ? 'movie' : 'book',
   } : null;
 
   // Backend Content ID'yi al ve platform bilgilerini yükle
   useEffect(() => {
     const loadBackendData = async () => {
-      if (!data || !decodedId) return;
+      if (!data || (!movieId && !bookId)) return;
       
       try {
         setLoadingBackend(true);
         // Backend'de Content'i oluştur veya bul
-        const externalId = decodedId.toString();
+        const externalId = isMovie ? movieId?.toString() : bookId;
         const contentType = isMovie ? 'Movie' : 'Book';
         const title = data.title || data.volumeInfo?.title;
         const year = isMovie 
@@ -196,9 +237,23 @@ const ContentDetailPage = () => {
   if (!data && !isLoading && !loadingBackend) {
     return (
       <Container>
-        <Alert variant="info">
+        <Alert variant="danger">
           <Alert.Heading>İçerik Bulunamadı</Alert.Heading>
-          <p>Aradığınız içerik bulunamadı. ID: {id}</p>
+          <p><strong>Hata:</strong> Aradığınız içerik bulunamadı.</p>
+          <p><strong>İçerik Tipi:</strong> {type}</p>
+          <p><strong>ID:</strong> {id}</p>
+          {error && (
+            <>
+              <p><strong>Hata Kodu:</strong> {error.response?.status || 'Bilinmiyor'}</p>
+              <p><strong>Hata Mesajı:</strong> {error.response?.data?.error || error.message || ''}</p>
+            </>
+          )}
+          <p className="mt-3">
+            <small className="text-muted">
+              Bu hata genellikle library'den gelen içeriklerde ExternalId (TMDb ID) bulunamadığında oluşur.
+              Lütfen kütüphanenizi yenileyin veya içeriği tekrar ekleyin.
+            </small>
+          </p>
           <Button variant="primary" onClick={() => navigate(-1)} className="mt-2">
             Geri Dön
           </Button>

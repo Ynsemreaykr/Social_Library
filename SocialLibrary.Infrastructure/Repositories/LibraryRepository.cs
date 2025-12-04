@@ -17,5 +17,8 @@ public class LibraryRepository : GenericRepository<LibraryEntry>, ILibraryReposi
         => await _dbSet.FirstOrDefaultAsync(x => x.UserId == userId && x.ContentId == contentId);
 
     public async Task<IEnumerable<LibraryEntry>> GetByUserAsync(int userId)
-        => await _dbSet.Where(x => x.UserId == userId).ToListAsync();
+        => await _dbSet
+            .Include(x => x.Content) // Content bilgisini de getir
+            .Where(x => x.UserId == userId)
+            .ToListAsync();
 }

@@ -12,6 +12,12 @@ import axiosClient from './axiosClient';
  */
 export const getUserLibrary = async (userId) => {
   const response = await axiosClient.get(`/Library/user/${userId}`);
+  console.log('🔍 getUserLibrary RAW Response:', {
+    status: response.status,
+    dataLength: response.data?.length,
+    firstEntry: response.data?.[0],
+    allData: response.data
+  });
   return response.data;
 };
 

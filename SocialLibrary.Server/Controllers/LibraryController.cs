@@ -22,6 +22,26 @@ public class LibraryController : ControllerBase
     public async Task<ActionResult<List<LibraryEntryDto>>> GetUserLibrary(int userId)
     {
         var result = await _service.GetUserLibraryAsync(userId);
+        
+        // DEBUG: Response'u logla
+        Console.WriteLine($"[LibraryController] GetUserLibrary - UserId: {userId}, Entry count: {result.Count}");
+        foreach (var entry in result)
+        {
+            Console.WriteLine($"[LibraryController] Entry - Id: {entry.Id}, ContentId: {entry.ContentId}, Status: {entry.Status}, HasContent: {entry.Content != null}, ContentType: {entry.Content?.ContentType}");
+            if (entry.Content != null)
+            {
+                Console.WriteLine($"[LibraryController] Content - Id: {entry.Content.Id}, ExternalId: {entry.Content.ExternalId}, Title: {entry.Content.Title}");
+            }
+        }
+        
+        // JSON serialization test
+        var json = System.Text.Json.JsonSerializer.Serialize(result, new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+            WriteIndented = true
+        });
+        Console.WriteLine($"[LibraryController] JSON Response (first 500 chars): {json.Substring(0, Math.Min(500, json.Length))}");
+        
         return Ok(result);
     }
 

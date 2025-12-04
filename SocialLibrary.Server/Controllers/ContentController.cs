@@ -76,7 +76,26 @@ public class ContentController : ControllerBase
     {
         try
         {
-            var contentType = dto.ContentType.ToLower() == "movie" ? ContentType.Movie : ContentType.Book;
+            // ContentType kontrolü - case insensitive ve daha sağlam
+            ContentType contentType;
+            var contentTypeLower = dto.ContentType?.ToLower().Trim();
+            if (contentTypeLower == "movie" || contentTypeLower == "1")
+            {
+                contentType = ContentType.Movie;
+            }
+            else if (contentTypeLower == "book" || contentTypeLower == "2")
+            {
+                contentType = ContentType.Book;
+            }
+            else
+            {
+                // Varsayılan olarak Movie (eski kod uyumluluğu için)
+                contentType = ContentType.Movie;
+            }
+            
+            // DEBUG: ContentType bilgisini logla
+            Console.WriteLine($"[ContentController] GetOrCreateByExternalId - ExternalId: {dto.ExternalId}, ContentType: {dto.ContentType} -> {contentType}");
+            
             var content = await _contents.GetOrCreateByExternalIdAsync(
                 dto.ExternalId,
                 contentType,
@@ -85,10 +104,15 @@ public class ContentController : ControllerBase
                 dto.PosterUrl,
                 dto.ExtraJson
             );
+            
+            // DEBUG: Oluşturulan/bulunan Content bilgisini logla
+            Console.WriteLine($"[ContentController] Content created/found - Id: {content.Id}, ExternalId: {content.ExternalId}, ContentType: {content.ContentType}");
+            
             return Ok(content);
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[ContentController] Error in GetOrCreateByExternalId: {ex.Message}");
             return StatusCode(500, new { error = ex.Message });
         }
     }
