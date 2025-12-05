@@ -27,7 +27,7 @@ public class ListController : ControllerBase
         _mapper = mapper;
     }
 
-    /// <summary>
+    /// <summary>   
     /// Get all lists for current user
     /// </summary>
     [HttpGet("me")]

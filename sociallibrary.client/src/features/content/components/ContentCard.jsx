@@ -23,40 +23,51 @@ const ContentCard = ({ content, type = 'movie' }) => {
     releaseYear = content.year || 
       (content.release_date ? new Date(content.release_date).getFullYear() : null);
     subtitle = null; // Film için subtitle yok, zaten release date var
-    // Library'den gelen içeriklerde id ExternalId (TMDb ID) olmalı
+    // Özel listeden veya library'den gelen içeriklerde id ExternalId (TMDb ID) olmalı
+    // Eğer externalId property'si varsa (özel listeden gelen), onu kullan
+    let finalContentId = content.externalId || content.id;
+    
     // TMDb ID sayısal olmalı, string ise parse et
-    if (typeof content.id === 'string') {
-      if (isNaN(content.id)) {
-        console.error('❌ Geçersiz film ID (string ama sayı değil):', content.id, 'Content:', content);
+    if (typeof finalContentId === 'string') {
+      if (isNaN(finalContentId)) {
+        console.error('❌ Geçersiz film ID (string ama sayı değil):', finalContentId, 'Content:', content);
         contentId = null;
       } else {
-        contentId = parseInt(content.id);
+        contentId = parseInt(finalContentId);
       }
     } else {
-      contentId = content.id;
+      contentId = finalContentId;
     }
     
-    // ID kontrolü: Eğer ID çok küçükse (backend Content ID olabilir), ExternalId kullan
+    // ID kontrolü: Eğer ID çok küçükse (backend Content ID olabilir), externalId property'sini kontrol et
     // TMDb ID'ler genellikle 100'den büyüktür (en küçük popüler film ID'leri 100+)
     // Eğer ID < 100 ise bu muhtemelen backend Content ID'sidir
     if (contentId && contentId < 100) {
-      console.error('❌ Geçersiz TMDb ID (çok küçük, backend Content ID olabilir):', {
-        contentId,
-        backendId: content.backendId,
-        externalId: content.id,
-        content: content
-      });
-      // Eğer backendId varsa ve aynıysa, bu backend Content ID'sidir
-      // Bu durumda içerik gösterilemez çünkü ExternalId yok
-      if (content.backendId && content.backendId === contentId) {
-        console.error('❌ Bu içerik için ExternalId bulunamadı, detay sayfası açılamaz');
-        contentId = null;
-      } else if (content.backendId && content.backendId !== contentId) {
-        // BackendId farklıysa, contentId muhtemelen ExternalId değil
-        console.error('❌ ID uyumsuzluğu:', {
+      // Özel listeden gelen içeriklerde externalId property'si olabilir
+      if (content.externalId) {
+        const externalIdNum = typeof content.externalId === 'string' 
+          ? (isNaN(content.externalId) ? null : parseInt(content.externalId))
+          : content.externalId;
+        if (externalIdNum && externalIdNum >= 100) {
+          console.log('✅ ContentCard: ExternalId bulundu, kullanılıyor', {
+            backendId: contentId,
+            externalId: externalIdNum
+          });
+          contentId = externalIdNum;
+        } else {
+          console.error('❌ Geçersiz TMDb ID (çok küçük):', {
+            contentId,
+            externalId: content.externalId,
+            content: content
+          });
+          contentId = null;
+        }
+      } else {
+        console.error('❌ Geçersiz TMDb ID (çok küçük, backend Content ID olabilir):', {
           contentId,
           backendId: content.backendId,
-          externalId: content.id
+          externalId: content.externalId,
+          content: content
         });
         contentId = null;
       }

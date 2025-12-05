@@ -34,6 +34,19 @@ const FeedPage = () => {
 
       const result = await getMyFeed(page, pageSize);
       
+      // DEBUG: Backend'den gelen activity'leri logla
+      if (result.items && result.items.length > 0) {
+        const firstActivity = result.items[0];
+        console.log('🔍 FeedPage - Backend\'den gelen ilk activity:', {
+          userId: firstActivity.userId,
+          UserId: firstActivity.UserId,
+          user_id: firstActivity.user_id,
+          username: firstActivity.username,
+          activityId: firstActivity.activityId,
+          fullActivity: firstActivity
+        });
+      }
+      
       if (append) {
         setActivities(prev => [...prev, ...(result.items || [])]);
       } else {

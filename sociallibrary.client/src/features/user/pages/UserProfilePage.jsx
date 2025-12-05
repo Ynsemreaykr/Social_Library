@@ -57,14 +57,29 @@ const UserProfilePage = () => {
   const [isLoadingMoreActivities, setIsLoadingMoreActivities] = useState(false);
   const activitiesPageSize = 10;
 
-  const userId = userIdParam ? parseInt(userIdParam) : null;
+  // userId'yi parse et ve geçerliliğini kontrol et
+  const userId = userIdParam ? (() => {
+    // String'den number'a çevir
+    const parsed = typeof userIdParam === 'string' 
+      ? parseInt(userIdParam, 10) 
+      : Number(userIdParam);
+    
+    // Geçerli bir pozitif sayı mı kontrol et
+    if (isNaN(parsed) || parsed <= 0 || !Number.isInteger(parsed)) {
+      console.error('❌ UserProfilePage - Geçersiz userId:', userIdParam, '→', parsed);
+      return null;
+    }
+    
+    return parsed;
+  })() : null;
   const isOwnProfile = currentUser && userId === currentUser.userId;
 
   // Kullanıcı profil bilgilerini yükle
   useEffect(() => {
     const loadProfile = async () => {
-      if (!userId) {
-        setError('Kullanıcı ID bulunamadı');
+      if (!userId || isNaN(userId) || userId <= 0) {
+        console.error('❌ UserProfilePage - Geçersiz userId:', userIdParam, '→', userId);
+        setError('Kullanıcı ID bulunamadı veya geçersiz');
         setIsLoading(false);
         return;
       }
@@ -462,20 +477,64 @@ const UserProfilePage = () => {
                               )}
                             </Card.Title>
                             <Card.Text className="text-muted mb-2">
-                              {list.items?.length || 0} içerik
+                              {(list.items || list.Items || []).length} içerik
                             </Card.Text>
                             
-                            {list.items && list.items.length > 0 && (
+                            {(list.items || list.Items || []).length > 0 && (
                               <Row className="g-2">
-                                {list.items.slice(0, 4).map((item) => (
-                                  <Col key={`${item._type}-${item.id}`} xs={6}>
-                                    <ContentCard content={item} type={item._type || 'movie'} />
-                                  </Col>
-                                ))}
+                                {(list.items || list.Items || []).slice(0, 4).map((item) => {
+                                  // Backend'den gelen ListItemContentDto formatını ContentCard formatına dönüştür
+                                  console.log('🔍 UserProfilePage ListItem:', item); // DEBUG
+                                  
+                                  const contentType = (item.contentType || item.ContentType || 'Movie').toLowerCase();
+                                  const isMovie = contentType === 'movie';
+                                  
+                                  // Backend'den gelen format: { Id, ExternalId, ContentType, Title, PosterUrl, Year }
+                                  // ExternalId TMDb veya Google Books ID'dir (bu kullanılmalı)
+                                  // Id backend Content ID'sidir (kullanılmamalı)
+                                  const externalId = item.externalId || item.ExternalId;
+                                  const backendContentId = item.id || item.Id;
+                                  
+                                  console.log('🔍 UserProfilePage ListItem Debug:', {
+                                    item,
+                                    externalId,
+                                    backendContentId,
+                                    contentType,
+                                    isMovie
+                                  });
+                                  
+                                  if (!externalId) {
+                                    console.error('❌ ListItemContentDto: ExternalId bulunamadı', item);
+                                    return null; // ExternalId yoksa gösterilmesin
+                                  }
+                                  
+                                  // ExternalId'yi string olarak al (TMDb ID'ler sayı olabilir)
+                                  const externalIdStr = String(externalId);
+                                  
+                                  // ContentCard için format - ExternalId kullan (TMDb veya Google Books ID)
+                                  const contentForCard = {
+                                    id: isMovie ? parseInt(externalIdStr) : externalIdStr, // Film için sayı, kitap için string
+                                    externalId: externalIdStr, // ExternalId'yi ayrıca ekle (ContentCard için)
+                                    title: item.title || item.Title,
+                                    posterUrl: item.posterUrl || item.PosterUrl,
+                                    year: item.year || item.Year,
+                                    _type: isMovie ? 'movie' : 'book',
+                                    // Backend Content ID'yi de ekle (iç işlemler için)
+                                    backendId: backendContentId
+                                  };
+                                  
+                                  console.log('✅ UserProfilePage: ContentCard için hazırlanan item:', contentForCard);
+                                  
+                                  return (
+                                    <Col key={`${backendContentId}-${externalId}`} xs={6}>
+                                      <ContentCard content={contentForCard} type={isMovie ? 'movie' : 'book'} />
+                                    </Col>
+                                  );
+                                })}
                               </Row>
                             )}
                             
-                            {isOwnProfile && list.items && list.items.length > 0 && (
+                            {isOwnProfile && (list.items || list.Items || []).length > 0 && (
                               <Button
                                 variant="outline-primary"
                                 size="sm"

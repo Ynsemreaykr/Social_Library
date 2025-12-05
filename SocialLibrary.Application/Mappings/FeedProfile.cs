@@ -13,6 +13,7 @@ public class FeedProfile : Profile
             .ConstructUsing(src => new ActivityCardDto(
                 src.Id,
                 src.ActivityType.ToString(),
+                src.UserId,
                 src.User.Username,
                 src.User.AvatarUrl,
                 src.CreatedAt,

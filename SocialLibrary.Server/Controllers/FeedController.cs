@@ -43,6 +43,21 @@ public class FeedController : ControllerBase
         }
 
         var result = await _feedService.GetFeedAsync(userId, page, pageSize);
+        
+        // DEBUG: Backend'den dönen activity'leri logla
+        if (result.Items != null && result.Items.Any())
+        {
+            var firstActivity = result.Items.First();
+            Console.WriteLine("========================================");
+            Console.WriteLine($"[FeedController] GetMyFeed - İlk activity:");
+            Console.WriteLine($"  ActivityId: {firstActivity.ActivityId}");
+            Console.WriteLine($"  UserId: {firstActivity.UserId}");
+            Console.WriteLine($"  Username: {firstActivity.Username}");
+            Console.WriteLine($"  ActivityType: {firstActivity.ActivityType}");
+            Console.WriteLine($"  Toplam {result.Items.Count()} activity döndürülüyor");
+            Console.WriteLine("========================================");
+        }
+        
         return Ok(result);
     }
 

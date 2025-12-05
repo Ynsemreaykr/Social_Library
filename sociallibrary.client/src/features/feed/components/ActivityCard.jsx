@@ -29,6 +29,7 @@ const ActivityCard = ({ activity, onUpdate }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [comments, setComments] = useState([]);
   const [showComments, setShowComments] = useState(false);
+  
   // Check if user liked this activity
   useEffect(() => {
     if (isAuthenticated && activity.activityId) {
@@ -158,7 +159,26 @@ const ActivityCard = ({ activity, onUpdate }) => {
     <Card className="mb-3 shadow-sm">
       <Card.Body>
         {/* Header: User avatar, username, action text, timestamp */}
-        <div className="d-flex align-items-start mb-3">
+        <div 
+          className="d-flex align-items-start mb-3"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }}
+          style={{ 
+            pointerEvents: 'none',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+            MozUserSelect: 'none',
+            msUserSelect: 'none'
+          }}
+        >
           <div className="me-3">
             {activity.avatarUrl ? (
               <img
@@ -170,6 +190,7 @@ const ActivityCard = ({ activity, onUpdate }) => {
                   borderRadius: '50%',
                   objectFit: 'cover',
                 }}
+                draggable={false}
               />
             ) : (
               <div
@@ -190,12 +211,7 @@ const ActivityCard = ({ activity, onUpdate }) => {
           </div>
           <div className="flex-grow-1">
             <div>
-              <Link
-                to={`/users/${activity.username}`}
-                style={{ textDecoration: 'none', fontWeight: 'bold' }}
-              >
-                {activity.username}
-              </Link>
+              <strong>{activity.username}</strong>
               <span className="ms-2 text-muted">{getActivityTypeText()}</span>
             </div>
             <div className="text-muted small">{timeAgo}</div>
@@ -289,15 +305,27 @@ const ActivityCard = ({ activity, onUpdate }) => {
           {showComments && comments.length > 0 && (
             <div className="mt-3 pt-3 border-top">
               <h6 className="mb-2">Yorumlar:</h6>
-              {comments.map((comment) => (
-                <div key={comment.id} className="mb-2">
-                  <strong>{comment.username}</strong>
-                  <span className="text-muted small ms-2">
-                    {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: tr })}
-                  </span>
-                  <p className="mb-0 mt-1">{comment.text}</p>
-                </div>
-              ))}
+              {comments.map((comment) => {
+                const commentUserId = comment.userId || comment.UserId || comment.user_id;
+                return (
+                  <div key={comment.id} className="mb-2">
+                    {commentUserId ? (
+                      <Link
+                        to={`/users/${commentUserId}`}
+                        style={{ textDecoration: 'none', fontWeight: 'bold', color: '#0d6efd' }}
+                      >
+                        {comment.username}
+                      </Link>
+                    ) : (
+                      <strong>{comment.username}</strong>
+                    )}
+                    <span className="text-muted small ms-2">
+                      {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: tr })}
+                    </span>
+                    <p className="mb-0 mt-1">{comment.text}</p>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

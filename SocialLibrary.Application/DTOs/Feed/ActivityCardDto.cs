@@ -3,6 +3,7 @@
 public record ActivityCardDto(
     int ActivityId,
     string ActivityType,
+    int UserId,
     string Username,
     string? AvatarUrl,
     DateTime CreatedAt,
