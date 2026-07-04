@@ -97,7 +97,8 @@ export const authStore = create((set, get) => ({
 
     try {
       // Health endpoint'i test et (herkese açık ama token varsa test eder)
-      const response = await fetch('http://localhost:5162/api/Health', {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5162/api';
+      const response = await fetch(`${baseUrl}/Health`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

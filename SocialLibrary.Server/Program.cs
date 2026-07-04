@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SocialLibrary.Application.Interfaces.Repositories;
@@ -15,7 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // DbContext
 builder.Services.AddDbContext<SocialLibraryDbContext>(options =>
-    options.UseSqlServer(
+    options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection"),
         b => b.MigrationsAssembly("SocialLibrary.Server")
     ));
@@ -91,33 +91,11 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 // CORS Policy - Frontend'den gelen isteklere izin ver
 builder.Services.AddCors(options =>
 {
-    // Development için daha geniş CORS (sadece development'ta)
-    // Not: AllowAnyOrigin() ile AllowCredentials() birlikte kullanılamaz
-    if (builder.Environment.IsDevelopment())
-    {
-        options.AddPolicy("AllowAll", policy =>
-        {
-            policy.AllowAnyOrigin()  // Tüm origin'lere izin ver
-                  .AllowAnyMethod()
-                  .AllowAnyHeader();
-            // AllowCredentials() kullanmıyoruz çünkü AllowAnyOrigin() ile uyumsuz
-            // JWT token zaten Authorization header'da gönderiliyor, sorun yok
-        });
-    }
-    
-    // Default policy - spesifik origin'ler için (production için)
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins(
-                "https://localhost:7105",  // Backend'in kendi domain'i
-                "http://localhost:7105",
-                "http://localhost:5162",   // Backend HTTP portu
-                "https://localhost:5173",  // Vite dev server HTTPS
-                "http://localhost:5173"    // Vite dev server HTTP
-            )
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials(); // Cookie'ler için (JWT header'da gönderiliyor, gerekli değil ama zarar vermez)
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
     });
 });
 
@@ -266,5 +244,21 @@ lifetime.ApplicationStarted.Register(() =>
         }
     }
 });
+
+// Otomatik veritabanı kurulumu (PostgreSQL tabloları oluşturma)
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<SocialLibraryDbContext>();
+        Console.WriteLine("⏳ Veritabanı bağlantısı kontrol ediliyor ve tablolar oluşturuluyor...");
+        dbContext.Database.EnsureCreated();
+        Console.WriteLine("✅ Veritabanı hazırlığı tamamlandı.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ Veritabanı hazırlığı sırasında hata oluştu: {ex.Message}");
+    }
+}
 
 app.Run();
