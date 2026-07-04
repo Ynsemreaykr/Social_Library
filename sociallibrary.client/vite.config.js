@@ -9,8 +9,8 @@ export default defineConfig({
     open: false, // Otomatik tarayıcı açma KAPALI - sadece backend kullanılacak
   },
   build: {
-    // Build output'u Server'ın wwwroot klasörüne koy
-    outDir: '../SocialLibrary.Server/wwwroot',
+    // Vercel'de derlerken 'dist' klasörüne, localde ise backend'in wwwroot klasörüne çıkar
+    outDir: process.env.VERCEL ? 'dist' : '../SocialLibrary.Server/wwwroot',
     emptyOutDir: true, // Build öncesi klasörü temizle
   },
 })
