@@ -217,8 +217,9 @@ const ContentCardWithActions = ({ content, type = 'movie' }) => {
     };
   }, [externalId, isMovie, isAuthenticated, content]);
 
-  // Gösterilecek puan: Platform puanı (her zaman göster, 0 olsa bile)
-  const rating = platformRating ?? 0;
+  // Gösterilecek puan: Platform puanı varsa o, yoksa kaynağındaki (TMDb / Google Books) orijinal puan
+  const externalRating = isMovie ? content.vote_average : content.volumeInfo?.averageRating;
+  const rating = platformRating > 0 ? platformRating : (externalRating ?? 0);
 
   // Content item'ı doğru formatta oluştur
   const contentItem = isMovie 
