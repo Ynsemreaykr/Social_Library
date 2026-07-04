@@ -412,7 +412,7 @@ const ContentDetailPage = () => {
                   <ButtonGroup className="mb-2">
                     {!isWatched && !isToWatch && (
                       <Button 
-                        variant="success"
+                        variant="outline-success"
                         onClick={async () => {
                           if (contentItem) {
                             try {
@@ -445,7 +445,7 @@ const ContentDetailPage = () => {
                       </Button>
                     )}
                     {isWatched && (
-                      <Button variant="success" disabled>
+                      <Button variant="outline-success" disabled>
                         ✓ İzledim
                       </Button>
                     )}
@@ -557,7 +557,7 @@ const ContentDetailPage = () => {
                   <ButtonGroup className="mb-2">
                     {!isRead && !isToRead && (
                       <Button 
-                        variant="success"
+                        variant="outline-success"
                         onClick={async () => {
                           if (contentItem) {
                             try {
@@ -590,7 +590,7 @@ const ContentDetailPage = () => {
                       </Button>
                     )}
                     {isRead && (
-                      <Button variant="success" disabled>
+                      <Button variant="outline-success" disabled>
                         ✓ Okudum
                       </Button>
                     )}

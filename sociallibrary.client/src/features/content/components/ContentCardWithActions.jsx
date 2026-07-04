@@ -345,7 +345,7 @@ const ContentCardWithActions = ({ content, type = 'movie' }) => {
                         overlay={<Tooltip>İzledim</Tooltip>}
                       >
                         <Button
-                          variant="success"
+                          variant="outline-success"
                           onClick={(e) => handleActionClick(e, 'watched')}
                           className="flex-grow-1"
                         >
@@ -376,7 +376,7 @@ const ContentCardWithActions = ({ content, type = 'movie' }) => {
                         overlay={<Tooltip>Okudum</Tooltip>}
                       >
                         <Button
-                          variant="success"
+                          variant="outline-success"
                           onClick={(e) => handleActionClick(e, 'read')}
                           className="flex-grow-1"
                         >
