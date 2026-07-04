@@ -147,8 +147,8 @@ const DiscoverPage = () => {
         <p className="text-muted">Film ve kitapları arayın, yeni içerikler keşfedin</p>
       </div>
 
-      {/* Arama Çubuğu ve Filtreler */}
-      <Card className="shadow-sm mb-4">
+      {/* Arama Çubuğu ve Filtreler - z-index dropdown menünün üste çıkması için eklendi */}
+      <Card className="shadow-sm mb-4" style={{ position: 'relative', zIndex: 100 }}>
         <Card.Body>
           <SearchBar onSearch={handleSearch} isLoading={isSearching} />
           
@@ -182,16 +182,31 @@ const DiscoverPage = () => {
                   </span>
                 </h3>
 
+                {/* Kısmi hata uyarısı (Örn: Film başarılı, Kitap servis hatası verdiğinde) */}
+                {searchType === 'all' && (movieSearchError || bookSearchError) && (
+                  <Alert variant="warning" className="py-2 px-3 mb-3 small">
+                    ⚠️ {movieSearchError ? 'Film arama servisi' : 'Kitap arama servisi'} geçici olarak yanıt vermediği için bazı sonuçlar eksik olabilir.
+                  </Alert>
+                )}
+
                 {isSearching ? (
                   <div className="text-center py-5">
                     <Spinner animation="border" role="status">
                       <span className="visually-hidden">Aranıyor...</span>
                     </Spinner>
                   </div>
-                ) : (movieSearchError || bookSearchError) ? (
+                ) : (
+                  (searchType === 'movie' && movieSearchError) ||
+                  (searchType === 'book' && bookSearchError) ||
+                  (searchType === 'all' && movieSearchError && bookSearchError)
+                ) ? (
                   <Alert variant="danger">
                     <Alert.Heading>Arama Hatası</Alert.Heading>
-                    <p>{(movieSearchError || bookSearchError)?.message || 'Arama sırasında bir hata oluştu. Lütfen tekrar deneyin.'}</p>
+                    <p>
+                      {searchType === 'movie' && movieSearchError?.message}
+                      {searchType === 'book' && bookSearchError?.message}
+                      {searchType === 'all' && 'Arama servisleri (Film & Kitap) şu anda yanıt vermiyor.'}
+                    </p>
                   </Alert>
                 ) : searchResults.length === 0 ? (
                   <Alert variant="info">
