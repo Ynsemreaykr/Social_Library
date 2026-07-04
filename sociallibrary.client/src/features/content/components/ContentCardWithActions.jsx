@@ -443,37 +443,57 @@ const ContentCardWithActions = ({ content, type = 'movie' }) => {
         
         {/* Hover'da Puan Ver / Yorum Yap / Özel Listeme Ekle butonları */}
         {showActions && (
-          <div className="mt-2 d-flex gap-1 flex-wrap">
-            <Button
-              variant={userRating ? 'success' : 'outline-secondary'}
-              size="sm"
-              onClick={(e) => handleActionClick(e, 'rate')}
-              disabled={!backendContentId || loadingBackend}
-              className="flex-grow-1"
+          <div className="mt-auto pt-2 border-top d-flex justify-content-around align-items-center bg-light rounded-bottom p-1" style={{ margin: '0.5rem -1rem -1rem -1rem' }}>
+            <OverlayTrigger
+              placement="top"
+              overlay={<Tooltip>{userRating ? `Puanım: ${userRating}` : 'Puan Ver'}</Tooltip>}
             >
-              ⭐ {userRating ? `Puanım: ${userRating}` : 'Puan Ver'}
-            </Button>
-            <Button
-              variant={userReview ? 'success' : 'outline-secondary'}
-              size="sm"
-              onClick={(e) => handleActionClick(e, 'review')}
-              disabled={!backendContentId || loadingBackend}
-              className="flex-grow-1"
+              <Button
+                variant={userRating ? 'warning' : 'light'}
+                size="sm"
+                onClick={(e) => handleActionClick(e, 'rate')}
+                disabled={!backendContentId || loadingBackend}
+                className="rounded-circle d-flex align-items-center justify-content-center p-0"
+                style={{ width: '32px', height: '32px', border: userRating ? 'none' : '1px solid #dee2e6', fontSize: '1rem' }}
+              >
+                ⭐
+              </Button>
+            </OverlayTrigger>
+
+            <OverlayTrigger
+              placement="top"
+              overlay={<Tooltip>{userReview ? 'Yorumu Düzenle' : 'Yorum Yap'}</Tooltip>}
             >
-              💬 {userReview ? 'Yorumum' : 'Yorum Yap'}
-            </Button>
-            <Button
-              variant="outline-info"
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleActionClick(e, 'addToList');
-              }}
-              className="flex-grow-1"
+              <Button
+                variant={userReview ? 'success' : 'light'}
+                size="sm"
+                onClick={(e) => handleActionClick(e, 'review')}
+                disabled={!backendContentId || loadingBackend}
+                className="rounded-circle d-flex align-items-center justify-content-center p-0"
+                style={{ width: '32px', height: '32px', border: userReview ? 'none' : '1px solid #dee2e6', fontSize: '1rem' }}
+              >
+                💬
+              </Button>
+            </OverlayTrigger>
+
+            <OverlayTrigger
+              placement="top"
+              overlay={<Tooltip>Özel Listeme Ekle</Tooltip>}
             >
-              📋 Özel Listeme Ekle
-            </Button>
+              <Button
+                variant="light"
+                size="sm"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleActionClick(e, 'addToList');
+                }}
+                className="rounded-circle d-flex align-items-center justify-content-center p-0"
+                style={{ width: '32px', height: '32px', border: '1px solid #dee2e6', fontSize: '1rem' }}
+              >
+                📋
+              </Button>
+            </OverlayTrigger>
           </div>
         )}
       </Card.Body>
