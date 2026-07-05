@@ -20,10 +20,10 @@ export const useTheme = () => {
  * Tema durumunu yönetir ve localStorage'a kaydeder
  */
 export const ThemeProvider = ({ children }) => {
-  // localStorage'dan tema tercihini yükle, yoksa 'light' varsayılan
+  // localStorage'dan tema tercihini yükle, yoksa 'dark' varsayılan
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
-    return savedTheme || 'light';
+    return savedTheme || 'dark';
   });
 
   // Tema değiştiğinde document.body'ye class ekle/çıkar
