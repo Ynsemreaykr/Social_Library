@@ -10,14 +10,17 @@ import axios from 'axios';
 
 const GOOGLE_BOOKS_BASE_URL = 'https://www.googleapis.com/books/v1';
 
+// API Key - .env dosyasından okunur
+const API_KEY = import.meta.env.VITE_GOOGLE_BOOKS_API_KEY || '';
+
 /**
  * Google Books API instance
- * Not: Google Books API ücretsizdir ve API key gerektirmez
  */
 const googleBooksApi = axios.create({
   baseURL: GOOGLE_BOOKS_BASE_URL,
   params: {
     langRestrict: 'tr', // Türkçe içerik için
+    ...(API_KEY ? { key: API_KEY } : {}), // Varsa API Key ekle
   },
   timeout: 10000, // 10 saniye timeout
 });

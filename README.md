@@ -80,14 +80,24 @@ cd Social_Library
 ### 2. Veritabanı Bağlantısını Yapılandırın
 `SocialLibrary.Server/appsettings.json` içerisindeki `ConnectionStrings:DefaultConnection` alanını kendi PostgreSQL bağlantı adresinizle güncelleyin.
 
-### 3. Backend Sunucusunu Çalıştırın
+### 3. API Anahtarlarını Yapılandırın (.env)
+`sociallibrary.client` klasörü altında bir `.env` dosyası oluşturun ve aşağıdaki değişkenleri tanımlayın:
+```env
+VITE_TMDB_API_KEY=your_tmdb_api_key_here
+VITE_GOOGLE_BOOKS_API_KEY=your_google_books_api_key_here
+```
+> [!NOTE]
+> * **TMDb API Key:** Filmlerin listelenmesi için gereklidir. [TheMovieDB](https://www.themoviedb.org/) üzerinden ücretsiz temin edilebilir.
+> * **Google Books API Key:** Kitapların rate-limit (429 RESOURCE_EXHAUSTED) hatası olmadan yüklenebilmesi için gereklidir. [Google Cloud Console](https://console.cloud.google.com/) üzerinden kitap API'sini etkinleştirerek ücretsiz API anahtarı alabilirsiniz.
+
+### 4. Backend Sunucusunu Çalıştırın
 ```bash
 dotnet restore
 dotnet run --project SocialLibrary.Server
 ```
 API varsayılan olarak `https://localhost:7196` veya `http://localhost:5169` adreslerinde çalışacaktır.
 
-### 4. Frontend İstemcisini Çalıştırın
+### 5. Frontend İstemcisini Çalıştırın
 ```bash
 cd sociallibrary.client
 npm install
