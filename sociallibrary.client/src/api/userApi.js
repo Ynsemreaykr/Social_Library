@@ -102,3 +102,15 @@ export const getFollowing = async (userId) => {
   return response.data;
 };
 
+/**
+ * Search users by username
+ * @param {string} query - Search query
+ * @returns {Promise} List of matching users
+ */
+export const searchUsers = async (query) => {
+  const response = await axiosClient.get('/User/search', {
+    params: { query },
+  });
+  return response.data;
+};
+

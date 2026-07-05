@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { Container, Card, Row, Col, Spinner, Alert, Button } from 'react-bootstrap';
 import SearchBar from '../components/SearchBar';
 import ContentCardWithActions from '../components/ContentCardWithActions';
@@ -6,6 +7,7 @@ import ShowcaseModule from '../components/ShowcaseModule';
 import FilterSidebar from '../components/FilterSidebar';
 import { useSearchMovies, usePopularMovies, useTopRatedMovies } from '../hooks/useMovies';
 import { useSearchBooks, usePopularBooks } from '../hooks/useBooks';
+import { useSearchUsers } from '../hooks/useUsers';
 
 /**
  * Discover/Search Page (Arama & Keşfet Sayfası) - Proje metni 2.1.3
@@ -14,7 +16,7 @@ import { useSearchBooks, usePopularBooks } from '../hooks/useBooks';
 const DiscoverPage = () => {
   // Arama durumu
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchType, setSearchType] = useState('all'); // 'all', 'movie', 'book'
+  const [searchType, setSearchType] = useState('all'); // 'all', 'movie', 'book', 'user'
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState({
     genres: [],
@@ -61,6 +63,15 @@ const DiscoverPage = () => {
     isLoading: isLoadingPopularBooks 
   } = usePopularBooks(0, 20);
 
+  // Kullanıcı hooks
+  const {
+    data: userSearchData,
+    isLoading: isSearchingUsers,
+    error: userSearchError
+  } = useSearchUsers(
+    searchQuery && (searchType === 'all' || searchType === 'user') ? searchQuery : null
+  );
+
   // Arama fonksiyonu
   const handleSearch = (query, type) => {
     setSearchQuery(query);
@@ -83,6 +94,12 @@ const DiscoverPage = () => {
         results.push(...bookSearchData.items.map(item => ({ ...item, _type: 'book' })));
       }
     }
+
+    if (searchType === 'all' || searchType === 'user') {
+      if (userSearchData) {
+        results.push(...userSearchData.map(item => ({ ...item, _type: 'user' })));
+      }
+    }
     
     return results;
   };
@@ -92,6 +109,9 @@ const DiscoverPage = () => {
     const results = getSearchResults();
     
     return results.filter(item => {
+      // Kullanıcılar için filtreleme yapma (direkt geç)
+      if (item._type === 'user') return true;
+
       // Puan filtresi
       const rating = item._type === 'movie' 
         ? item.vote_average 
@@ -134,10 +154,10 @@ const DiscoverPage = () => {
 
       return true;
     });
-  }, [movieSearchData, bookSearchData, searchType, filters]);
+  }, [movieSearchData, bookSearchData, userSearchData, searchType, filters]);
 
   const searchResults = filteredResults;
-  const isSearching = isSearchingMovies || isSearchingBooks;
+  const isSearching = isSearchingMovies || isSearchingBooks || isSearchingUsers;
   const hasSearchQuery = !!searchQuery;
 
   return (
@@ -217,37 +237,79 @@ const DiscoverPage = () => {
                     {/* Kategori Butonları - Sadece "Hepsi" seçeneğinde göster */}
                     {searchType === 'all' && searchResults.length > 0 && (
                       <div className="mb-3 d-flex gap-2 flex-wrap">
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          onClick={() => {
-                            const filtered = searchResults.filter(item => item._type === 'movie');
-                            if (filtered.length > 0) {
+                        {searchResults.filter(item => item._type === 'user').length > 0 && (
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
+                            onClick={() => {
+                              document.getElementById('user-results')?.scrollIntoView({ behavior: 'smooth' });
+                            }}
+                          >
+                            👤 Kullanıcılar ({searchResults.filter(item => item._type === 'user').length})
+                          </Button>
+                        )}
+                        {searchResults.filter(item => item._type === 'movie').length > 0 && (
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
+                            onClick={() => {
                               document.getElementById('movie-results')?.scrollIntoView({ behavior: 'smooth' });
-                            }
-                          }}
-                        >
-                          🎬 Filmler ({searchResults.filter(item => item._type === 'movie').length})
-                        </Button>
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          onClick={() => {
-                            const filtered = searchResults.filter(item => item._type === 'book');
-                            if (filtered.length > 0) {
+                            }}
+                          >
+                            🎬 Filmler ({searchResults.filter(item => item._type === 'movie').length})
+                          </Button>
+                        )}
+                        {searchResults.filter(item => item._type === 'book').length > 0 && (
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
+                            onClick={() => {
                               document.getElementById('book-results')?.scrollIntoView({ behavior: 'smooth' });
-                            }
-                          }}
-                        >
-                          📚 Kitaplar ({searchResults.filter(item => item._type === 'book').length})
-                        </Button>
+                            }}
+                          >
+                            📚 Kitaplar ({searchResults.filter(item => item._type === 'book').length})
+                          </Button>
+                        )}
                       </div>
                     )}
 
+                    {/* Kullanıcı Sonuçları */}
+                    {(searchType === 'all' || searchType === 'user') && searchResults.filter(item => item._type === 'user').length > 0 && (
+                      <div id="user-results" className="mb-4">
+                        {searchType === 'all' && <h5 className="mb-3 text-primary border-bottom pb-2">👤 Kullanıcılar</h5>}
+                        <Row className="g-3">
+                          {searchResults.filter(item => item._type === 'user').map((item, index) => (
+                            <Col key={`user-${item.id}-${index}`} xs={12} sm={6} md={4} lg={3}>
+                              <Link to={`/profile/${item.username}`} className="text-decoration-none text-reset">
+                                <Card className="h-100 shadow-sm border border-secondary border-opacity-10 bg-dark bg-opacity-10 hover-shadow-sm transition-all duration-150">
+                                  <Card.Body className="d-flex align-items-center gap-3 py-2 px-3">
+                                    <img 
+                                      src={item.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${item.username}`} 
+                                      alt={item.username} 
+                                      className="rounded-circle border border-secondary border-opacity-25"
+                                      style={{ width: '45px', height: '45px', objectFit: 'cover' }}
+                                    />
+                                    <div className="min-w-0 flex-grow-1">
+                                      <h6 className="mb-0 text-truncate font-weight-bold">@{item.username}</h6>
+                                      {item.bio ? (
+                                        <p className="text-muted mb-0 small text-truncate">{item.bio}</p>
+                                      ) : (
+                                        <p className="text-muted mb-0 small italic">Henüz bir biyografi yok.</p>
+                                      )}
+                                    </div>
+                                  </Card.Body>
+                                </Card>
+                              </Link>
+                            </Col>
+                          ))}
+                        </Row>
+                      </div>
+                    )}
+ 
                     {/* Film Sonuçları */}
                     {(searchType === 'all' || searchType === 'movie') && searchResults.filter(item => item._type === 'movie').length > 0 && (
-                      <div id="movie-results" className={searchType === 'all' ? 'mb-4' : ''}>
-                        {searchType === 'all' && <h4 className="mb-3">🎬 Filmler</h4>}
+                      <div id="movie-results" className="mb-4">
+                        {searchType === 'all' && <h5 className="mb-3 text-primary border-bottom pb-2">🎬 Filmler</h5>}
                         <Row className="g-3">
                           {searchResults.filter(item => item._type === 'movie').map((item, index) => (
                             <Col key={`movie-${item.id}-${index}`} xs={6} sm={4} md={3} lg={2}>
@@ -260,11 +322,11 @@ const DiscoverPage = () => {
                         </Row>
                       </div>
                     )}
-
+ 
                     {/* Kitap Sonuçları */}
                     {(searchType === 'all' || searchType === 'book') && searchResults.filter(item => item._type === 'book').length > 0 && (
                       <div id="book-results">
-                        {searchType === 'all' && <h4 className="mb-3">📚 Kitaplar</h4>}
+                        {searchType === 'all' && <h5 className="mb-3 text-primary border-bottom pb-2">📚 Kitaplar</h5>}
                         <Row className="g-3">
                           {searchResults.filter(item => item._type === 'book').map((item, index) => (
                             <Col key={`book-${item.id}-${index}`} xs={6} sm={4} md={3} lg={2}>

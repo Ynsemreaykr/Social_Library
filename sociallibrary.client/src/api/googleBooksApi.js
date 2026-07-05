@@ -1,5 +1,126 @@
 import axios from 'axios';
 
+// Google Books API kotaları dolduğunda veya ağ hatası alındığında gösterilecek yedek popüler kitaplar
+export const FALLBACK_BOOKS = {
+  totalItems: 6,
+  items: [
+    {
+      id: "fallback-book-1",
+      volumeInfo: {
+        title: "Nutuk",
+        authors: ["Mustafa Kemal Atatürk"],
+        publishedDate: "1927",
+        description: "Mustafa Kemal Atatürk'ün 1919-1927 yılları arasındaki Türk Kurtuluş Savaşı ve Cumhuriyetin kuruluşunu anlattığı başyapıtı.",
+        categories: ["Tarih", "Politika"],
+        averageRating: 5.0,
+        ratingsCount: 420,
+        pageCount: 600,
+        publisher: "Türk Tarih Kurumu",
+        language: "tr",
+        imageLinks: {
+          thumbnail: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=150&auto=format&fit=crop&q=60",
+          smallThumbnail: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=100&auto=format&fit=crop&q=60"
+        }
+      }
+    },
+    {
+      id: "fallback-book-2",
+      volumeInfo: {
+        title: "Kürk Mantolu Madonna",
+        authors: ["Sabahattin Ali"],
+        publishedDate: "1943",
+        description: "Raif Efendi'nin içine kapanık, melankolik dünyasında Maria Puder'e duyduğu unutulmaz ve sessiz aşk hikayesi.",
+        categories: ["Roman", "Edebiyat"],
+        averageRating: 4.8,
+        ratingsCount: 380,
+        pageCount: 160,
+        publisher: "Yapı Kredi Yayınları",
+        language: "tr",
+        imageLinks: {
+          thumbnail: "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=150&auto=format&fit=crop&q=60",
+          smallThumbnail: "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=100&auto=format&fit=crop&q=60"
+        }
+      }
+    },
+    {
+      id: "fallback-book-3",
+      volumeInfo: {
+        title: "Saatleri Ayarlama Enstitüsü",
+        authors: ["Ahmet Hamdi Tanpınar"],
+        publishedDate: "1961",
+        description: "Doğu ve Batı arasında bocalayan Türk toplumunun bürokrasi, batıl inançlar ve modernleşme sancılarını hicveden muazzam roman.",
+        categories: ["Roman", "Edebiyat"],
+        averageRating: 4.7,
+        ratingsCount: 290,
+        pageCount: 416,
+        publisher: "Dergâh Yayınları",
+        language: "tr",
+        imageLinks: {
+          thumbnail: "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=150&auto=format&fit=crop&q=60",
+          smallThumbnail: "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=100&auto=format&fit=crop&q=60"
+        }
+      }
+    },
+    {
+      id: "fallback-book-4",
+      volumeInfo: {
+        title: "Tutunamayanlar",
+        authors: ["Oğuz Atay"],
+        publishedDate: "1972",
+        description: "Selahattin Özdemir'in intiharını araştıran Turgut Özben'in aydın yalnızlığı, ironik dil ve varoluşsal arayışını konu alan postmodern roman.",
+        categories: ["Roman", "Edebiyat"],
+        averageRating: 4.9,
+        ratingsCount: 310,
+        pageCount: 724,
+        publisher: "İletişim Yayınları",
+        language: "tr",
+        imageLinks: {
+          thumbnail: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?w=150&auto=format&fit=crop&q=60",
+          smallThumbnail: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?w=100&auto=format&fit=crop&q=60"
+        }
+      }
+    },
+    {
+      id: "fallback-book-5",
+      volumeInfo: {
+        title: "Çalıkuşu",
+        authors: ["Reşat Nuri Güntekin"],
+        publishedDate: "1922",
+        description: "Feride'nin İstanbul'dan ayrılıp Anadolu köylerinde öğretmenlik yaparken karşılaştığı zorluklar, aşk acısı ve ideallerini konu alan klasik eser.",
+        categories: ["Roman", "Klasikler"],
+        averageRating: 4.6,
+        ratingsCount: 220,
+        pageCount: 540,
+        publisher: "İnkılap Kitabevi",
+        language: "tr",
+        imageLinks: {
+          thumbnail: "https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?w=150&auto=format&fit=crop&q=60",
+          smallThumbnail: "https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?w=100&auto=format&fit=crop&q=60"
+        }
+      }
+    },
+    {
+      id: "fallback-book-6",
+      volumeInfo: {
+        title: "Şeker Portakalı",
+        authors: ["José Mauro de Vasconcelos"],
+        publishedDate: "1968",
+        description: "Küçük Zeze'nin yoksulluk, hayal gücü ve derin dostluklar eşliğinde büyürken yaşadığı hüzün dolu dünyayı anlatan unutulmaz çocukluk klasiği.",
+        categories: ["Dünya Edebiyatı", "Roman"],
+        averageRating: 4.8,
+        ratingsCount: 450,
+        pageCount: 180,
+        publisher: "Can Yayınları",
+        language: "tr",
+        imageLinks: {
+          thumbnail: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=150&auto=format&fit=crop&q=60",
+          smallThumbnail: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=100&auto=format&fit=crop&q=60"
+        }
+      }
+    }
+  ]
+};
+
 /**
  * Google Books API Client
  * Kitap meta verilerini çekmek için Google Books API kullanır
@@ -73,31 +194,26 @@ export const searchBooks = async (query, startIndex = 0, maxResults = 20) => {
         maxResults,
       },
     });
-    return response.data;
-  } catch (error) {
-    // Daha detaylı hata mesajı
-    let errorMessage = 'Kitap araması sırasında bir hata oluştu.';
     
-    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-      errorMessage = 'İstek zaman aşımına uğradı. Lütfen tekrar deneyin.';
-    } else if (error.response) {
-      // Backend'den gelen hata
-      const status = error.response.status;
-      if (status >= 500) {
-        errorMessage = 'Google Books API sunucusu hatası. Lütfen daha sonra tekrar deneyin.';
-      } else {
-        errorMessage = `Hata: ${status} ${error.response.statusText}`;
-      }
-    } else if (error.request) {
-      // İstek gönderildi ama yanıt alınamadı (network error)
-      errorMessage = 'Bağlantı hatası. İnternet bağlantınızı kontrol edin.';
-    } else {
-      errorMessage = error.message || 'Bilinmeyen bir hata oluştu.';
+    // Eğer API yanıtı boşsa veya items yoksa fallback'i filtrele
+    if (!response.data || !response.data.items || response.data.items.length === 0) {
+      console.warn('Google Books API empty result, filtering fallback books for query:', query);
+      const filteredItems = FALLBACK_BOOKS.items.filter(item => 
+        item.volumeInfo.title.toLowerCase().includes(query.toLowerCase()) ||
+        item.volumeInfo.authors.some(author => author.toLowerCase().includes(query.toLowerCase()))
+      );
+      return { totalItems: filteredItems.length, items: filteredItems };
     }
     
-    const enhancedError = new Error(errorMessage);
-    enhancedError.originalError = error;
-    throw enhancedError;
+    return response.data;
+  } catch (error) {
+    console.error('Google Books API Search Error, using fallback filter:', error.message);
+    // Hata durumunda arama terimiyle eşleşen fallback kitaplarını dön
+    const filteredItems = FALLBACK_BOOKS.items.filter(item => 
+      item.volumeInfo.title.toLowerCase().includes(query.toLowerCase()) ||
+      item.volumeInfo.authors.some(author => author.toLowerCase().includes(query.toLowerCase()))
+    );
+    return { totalItems: filteredItems.length, items: filteredItems };
   }
 };
 
@@ -119,10 +235,16 @@ export const getPopularBooks = async (startIndex = 0, maxResults = 20) => {
         orderBy: 'relevance', // İlgili sonuçlara göre sırala
       },
     });
+    
+    if (!response.data || !response.data.items || response.data.items.length === 0) {
+      console.warn('Google Books API returned no items for popular books, using static fallback books.');
+      return FALLBACK_BOOKS;
+    }
+    
     return response.data;
   } catch (error) {
-    console.error('Google Books API Error:', error);
-    throw error;
+    console.warn('Google Books API Error, using static fallback books:', error.message);
+    return FALLBACK_BOOKS;
   }
 };
 

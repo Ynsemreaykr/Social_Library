@@ -37,6 +37,7 @@ const SearchBar = ({ onSearch, isLoading = false }) => {
             {contentType === 'all' && '🔍 Hepsi'}
             {contentType === 'movie' && '🎬 Filmler'}
             {contentType === 'book' && '📚 Kitaplar'}
+            {contentType === 'user' && '👤 Kullanıcılar'}
           </Dropdown.Toggle>
           <Dropdown.Menu style={{ zIndex: 1050 }}>
             <Dropdown.Item
@@ -57,11 +58,25 @@ const SearchBar = ({ onSearch, isLoading = false }) => {
             >
               📚 Kitaplar
             </Dropdown.Item>
+            <Dropdown.Item
+              active={contentType === 'user'}
+              onClick={() => handleTypeChange('user')}
+            >
+              👤 Kullanıcılar
+            </Dropdown.Item>
           </Dropdown.Menu>
         </Dropdown>
         <Form.Control
           type="text"
-          placeholder="Film veya kitap ara..."
+          placeholder={
+            contentType === 'user' 
+              ? "Kullanıcı adı ara..." 
+              : contentType === 'movie'
+              ? "Film ara..."
+              : contentType === 'book'
+              ? "Kitap ara..."
+              : "Film, kitap veya kullanıcı ara..."
+          }
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           disabled={isLoading}

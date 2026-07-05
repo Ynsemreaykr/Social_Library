@@ -197,6 +197,24 @@ public class UserController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Search users by username
+    /// </summary>
+    [HttpGet("search")]
+    [AllowAnonymous]
+    public async Task<ActionResult<List<UserListItemDto>>> SearchUsers([FromQuery] string query)
+    {
+        try
+        {
+            var users = await _userService.SearchUsersAsync(query);
+            return Ok(users);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
     private int? GetCurrentUserId()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 

@@ -1,4 +1,4 @@
-﻿namespace SocialLibrary.Application.Interfaces.Services;
+namespace SocialLibrary.Application.Interfaces.Services;
 
 using SocialLibrary.Application.DTOs.User;
 
@@ -12,4 +12,5 @@ public interface IUserService
     Task<List<UserListItemDto>> GetFollowersAsync(int userId);
     Task<List<UserListItemDto>> GetFollowingAsync(int userId);
     Task UpdateProfileAsync(int userId, UpdateProfileDto dto);
+    Task<List<UserListItemDto>> SearchUsersAsync(string query);
 }

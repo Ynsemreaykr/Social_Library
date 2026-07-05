@@ -18,19 +18,8 @@ Proje, backend tarafında **C# ASP.NET Core Clean Architecture**, frontend taraf
 
 ## 📸 Proje Ekran Görüntüleri
 
-> [!NOTE]
-> Proje görselleri yakında eklenecektir. Görsel dosyalarınızı `./assets/screenshots/` dizinine yerleştirerek aşağıdaki yer tutucuları aktif hale getirebilirsiniz.
-
-### 🖥️ Genel Görünüm ve Ana Sayfa
-<!-- Buraya ana sayfa veya dashboard görselini yerleştirebilirsiniz -->
-![Social Library Ana Sayfa](./assets/screenshots/dashboard.png)
-
-### 🔍 Kitap Arama & Sosyal Akış
-<!-- Buraya arama veya akış (feed) ekranı görselini yerleştirebilirsiniz -->
-![Kitap Arama & Sosyal Akış](./assets/screenshots/social_feed.png)
-
-### 👤 Kullanıcı Profili & İncelemeler
-<!-- Buraya kullanıcı profili ve kitap detay/yorum ekranı görselini yerleştirebilirsiniz -->
+### 👤 Kullanıcı Profili & Özel Listeler
+Kullanıcıların kendi kitap/film inceleme listelerini ve son aktivitelerini sergiledikleri kişiselleştirilmiş profil ekranı:
 ![Kullanıcı Profili & İncelemeler](./assets/screenshots/profile_reviews.png)
 
 ---

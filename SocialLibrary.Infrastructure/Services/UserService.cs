@@ -175,5 +175,24 @@ public class UserService : IUserService
         _users.Update(user);
         await _uow.SaveChangesAsync();
     }
+
+    public async Task<List<UserListItemDto>> SearchUsersAsync(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return new List<UserListItemDto>();
+
+        var lowercaseQuery = query.ToLower();
+        var matchingUsers = await _users.Query()
+            .Where(u => u.Username.ToLower().Contains(lowercaseQuery))
+            .Take(10)
+            .ToListAsync();
+
+        return matchingUsers.Select(u => new UserListItemDto(
+            Id: u.Id,
+            Username: u.Username,
+            AvatarUrl: u.AvatarUrl,
+            Bio: u.Bio
+        )).ToList();
+    }
 }
 
